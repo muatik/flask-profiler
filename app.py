@@ -4,6 +4,7 @@ from flask_profiler import flask_profiler
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
+app.config["flask_profiler"] = {}
 # app.config.from_object(config)
 
 
@@ -33,4 +34,4 @@ def raiseException():
 
 flask_profiler.init_app(app)
 if __name__ == '__main__':
-    app.run(host="192.168.34.10")
+    app.run(host="192.168.34.15")
