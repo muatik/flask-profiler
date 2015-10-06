@@ -5,34 +5,39 @@ import functools
 from flask import request
 from pymongo import MongoClient
 
-storage = MongoClient()
+storage = MongoClient()["profiler"]["measurements"]
 
 
 class Measurement(object):
     """represents an endpoint measurement"""
-    def __init__(self, request, endpoint, view_function):
+    DECIMAL_PLACES = 5
+
+    def __init__(self, name, request=None):
         super(Measurement, self).__init__()
         self.request = request
-        self.endpoint = endpoint
-        self.view_function = view_function
+        self.name = name
         self.startedAt = 0
         self.endedAt = 0
         self.elapsed = 0
 
     def __json__(self):
-        return {
-            "request": {
+        data = {
+            "name": self.name,
+            "startedAt": self.startedAt,
+            "endedAt": self.endedAt,
+            "elapsed": self.elapsed
+        }
+
+        if self.request:
+            data["request"] = {
                 "url": self.request.base_url,
                 "method": self.request.method,
                 "args": dict(self.request.args.items()),
                 "form": dict(self.request.form.items()),
                 "body": self.request.data,
-                "headers": dict(self.request.headers.items())},
-            "endpoint": self.endpoint,
-            "startedAt": self.startedAt,
-            "endedAt": self.endedAt,
-            "elapsed": self.elapsed
-        }
+                "headers": dict(self.request.headers.items())}
+
+        return data
 
     def __str__(self):
         return str(self.__json__())
@@ -44,23 +49,35 @@ class Measurement(object):
 
     def stop(self):
         self.endedAt = default_timer()
-        self.elapsed = self.endedAt - self.startedAt
+        self.elapsed = round(
+            self.endedAt - self.startedAt, self.DECIMAL_PLACES)
+
+
+def getMeasurements():
+    return storage.find(
+        keyword=None,
+        sortBy="startedAt",
+        endTime=None,
+        startTime=None,
+        elapsedMoreThan=0
+        )
 
 
 def wrap_to_measure(endpoint, f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        measurement = Measurement(request, endpoint, f)
+        measurement = Measurement(endpoint)
         measurement.start()
 
         try:
             returnVal = f(*args, **kwargs)
+            time.sleep(1)
         except Exception, e:
             returnVal = None
         finally:
-            measurement.start()
+            measurement.stop()
 
-        storage.insert(measurement)
+        storage.insert(measurement.__json__())
 
         return returnVal
 
