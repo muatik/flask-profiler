@@ -4,6 +4,7 @@ import time
 import functools
 from flask import request, jsonify
 import storage
+from pprint import pprint as pp
 
 collection = None
 
@@ -12,11 +13,13 @@ class Measurement(object):
     """represents an endpoint measurement"""
     DECIMAL_PLACES = 5
 
-    def __init__(self, name, method, context=None):
+    def __init__(self, name, args, kwargs, method, context=None):
         super(Measurement, self).__init__()
         self.context = context
         self.name = name
         self.method = method
+        self.args = args
+        self.kwargs = kwargs
         self.startedAt = 0
         self.endedAt = 0
         self.elapsed = 0
@@ -24,6 +27,8 @@ class Measurement(object):
     def __json__(self):
         return {
             "name": self.name,
+            "args": self.args,
+            "kwargs": self.kwargs,
             "method": self.method,
             "startedAt": self.startedAt,
             "endedAt": self.endedAt,
@@ -45,21 +50,24 @@ class Measurement(object):
             self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
-def wrap_to_measure(endpoint, f, method, context=None):
+def wrap_to_measure(f, name, method, context=None):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        measurement = Measurement(endpoint, method, context)
+        measurement = Measurement(name, args, kwargs, method, context)
         measurement.start()
 
         try:
             returnVal = f(*args, **kwargs)
-            time.sleep(1)
         except Exception, e:
             returnVal = None
         finally:
             measurement.stop()
 
-        collection.insert(measurement.__json__())
+        # if not collection:
+        #     raise Exception(
+        #         "before measuring anything, you need to call init_app()")
+        # collection.insert(measurement.__json__())
+        pp(measurement.__json__())
 
         return returnVal
 
@@ -75,7 +83,8 @@ def wrap_http_endpoint(endpoint, f, request=None):
             "form": dict(request.form.items()),
             "body": request.data,
             "headers": dict(request.headers.items())}
-        wrapped = wrap_to_measure(endpoint, f, request.method, context)
+        print(request.url_rule)
+        wrapped = wrap_to_measure(f, endpoint, request.method, context)
         return wrapped(*args, **kwargs)
     return wrapper
 
@@ -105,17 +114,7 @@ def registerInternalRouters(app):
     @app.route("/flaskp/filter/")
     def filterMeasurements():
         args = dict(request.args.items())
-        # r = {}
-        # args = dict(request.args.items())
-        # a = collection.find()
-        # for i in a:
-        #     i["_id"] = str(i["_id"])
-        #     i["endedAt"] = str(i["endedAt"])
-        #     i["startedAt"] = str(i["startedAt"])
-        #     r[i["_id"]] = i
-        # return jsonify(r)
-        print args
-        return jsonify(collection.filter(args))
+        return jsonify(collection.find(args))
 
     @app.route("/flaskp/summary/")
     def getMeasurementsSummary():
@@ -145,3 +144,13 @@ def init_app(app):
     collection = storage.getCollection(CONF.get("storage", {}))
     wrapAppEndpoints(app)
     registerInternalRouters(app)
+
+    import rot
+    rot.init(app)
+
+
+def profile(*args, **kwargs):
+    def wrapper(f):
+        name = kwargs.get("name", f.__name__)
+        return wrap_http_endpoint(name, f, request=request)
+    return wrapper
