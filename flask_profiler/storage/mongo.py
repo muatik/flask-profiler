@@ -2,7 +2,6 @@ import pymongo
 from base import BaseStorage
 import datetime
 from bson.objectid import ObjectId
-import random
 
 class Mongo(BaseStorage):
     """docstring for Mongo"""

@@ -7,7 +7,5 @@ def getCollection(conf):
 
 
 def getMongoCollection(conf):
-    from pymongo import MongoClient
-    db = MongoClient()[conf.get("database", "flask_profiler")]
-    collection = db[conf.get("collection", "measurements")]
-    return collection
+    from storage.mongo import Mongo
+    return Mongo(conf)
