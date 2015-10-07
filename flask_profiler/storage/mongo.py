@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 class Mongo(BaseStorage):
     """docstring for Mongo"""
 
-    def __init__(self):
+    def __init__(self, config):
         super(Mongo, self).__init__(),
         self.host = "localhost"
         self.database_name = "profiler"
@@ -64,8 +64,8 @@ class Mongo(BaseStorage):
             return True
         return False
 
-    def delete(self, criteria):
-        result = self.collection.remove(criteria)
+    def delete(self, measurementId):
+        result = self.collection.remove({"_id": ObjectId(measurementId)})
         if result["n"] > 0:
             return True
         return False
