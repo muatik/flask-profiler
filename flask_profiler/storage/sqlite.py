@@ -1,13 +1,20 @@
 import sqlite3
-import datetime
 import json
+from base import BaseStorage
 
 class Sqlite(BaseStorage):
     """docstring for Sqlite"""
-    def __init__(self):
+    def __init__(self, config=None):
         super(Sqlite, self).__init__()
-        sqlite_file = 'flask_profiler.sqlite'    # name of the sqlite database file
-        self.table_name = 'PORFILER'  # name of the table to be created
+        self.config = config
+        self.sqlite_file = "flask_profiler.sqlite"
+        self.table_name = 'PROFILER'  # name of the table to be created
+
+        if hasattr(self.config, "SQLITE_FILE"):
+            self.sqlite_file = self.config.SQLITE_FILE
+        if hasattr(self.config, "TABLE_NAME"):
+            self.table_name = self.config.TABLE_NAME
+
         self.startedAt_head = 'startedAt' # name of the column
         self.endedAt_head = 'endedAt' # name of the column
         self.elapsed_head = 'elapsed' # name of the column
@@ -18,24 +25,26 @@ class Sqlite(BaseStorage):
         self.body_head = 'body'
         self.headers_head = 'headers'
         self.name_head = 'name'
-        self.conn = sqlite3.connect(sqlite_file)
-        self.c = self.conn.cursor()
+
+        self.connection = sqlite3.connect(self.sqlite_file)
+        self.cursor = self.connection.cursor()
         try:
-            create_database()
-        except:
-            pass
+            self.create_database()
+        except Exception, e:
+            print e.message
 
-
+    def __enter__(self):
+        return self
 
     def create_database(self):
-        c.execute(
+        self.cursor.execute(
         '''CREATE TABLE {table_name}
         (
+        ID Integer PRIMARY KEY AUTOINCREMENT,
         {startedAt} TEXT,
         {endedAt} TEXT,
         {elapsed} REAL,
         {method} TEXT,
-        {context} TEXT,
         {url} TEXT,
         {form} TEXT,
         {body} TEXT,
@@ -48,7 +57,6 @@ class Sqlite(BaseStorage):
             endedAt= self.endedAt_head,
             elapsed= self.elapsed_head,
             method= self.method_head,
-            context= self.context_head,
             url= self.url_head,
             form=self.form_head,
             body=self.body_head,
@@ -56,7 +64,7 @@ class Sqlite(BaseStorage):
             name=self.name_head
             )
         )
-        conn.commit()
+        self.connection.commit()
 
     def insert(self, kwargs):
         endedAt = kwargs.get('endedAt', None)
@@ -74,100 +82,152 @@ class Sqlite(BaseStorage):
         f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
         f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
         f_context  = json.dumps(context)
-        self.c.execute(
+        self.cursor.execute(
         '''INSERT INTO "{table_name}" VALUES
-        ("{startedAt}", "{endedAt}", {elapsed}, "{method}" "{context}",
+        ( {id}, "{startedAt}", "{endedAt}", {elapsed}, "{method}",
          "{url}", "{form}", "{body}", "{headers}", "{name}")'''.format(
-            table_name= table_name,
+            id="null",
+            table_name= self.table_name,
             startedAt= f_startedAt,
             endedAt= f_endedAt,
-            elapsed= self.elapsed_head,
-            method= self.method_head,
-            context= self.context_head,
-            url= self.url_head,
-            form=self.form_head,
-            body=self.body_head,
-            headers=self.headers_head,
-            name=self.name_head))
-        self.conn.commit()
+            elapsed= elapsed,
+            method= method,
+            url= url,
+            form=form,
+            body=body,
+            headers=headers,
+            name=name))
+        self.connection.commit()
 
 
-    def filter(self, kwargs):
+    def filter(self, kwargs={}):
         # Find Operation
         endedAt = kwargs.get('endedAt', None)
         startedAt = kwargs.get('startedAt', None)
         elapsed = kwargs.get('elapsed', None)
         method = kwargs.get('method', None)
         name = kwargs.get('name', None)
-
-        f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-        f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-
         conditions = ""
-        if f_endedAt:
-            conditions = conditions + "endedAt<={} ".format(f_endedAt)
-        if f_startedAt:
-            conditions = conditions + "startedAt>={} ".format(f_startedAt)
-        if elapsed:
-            conditions = conditions + "elapsed>={} ".format(elapsed)
-        if method:
-            conditions = conditions + "method={} ".format(method)
-        if name:
-            conditions = conditions + "name={} ".format(name)
+        if any(kwargs[k] for k in kwargs):
+            conditions = "WHERE "
 
-        self.c.execute(
-            'SELECT * FROM "{table_name}" WHERE {conditions}'.format(
-                table_name=table_name,
+        if endedAt:
+            f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
+            conditions = conditions + "`endedAt` <={} ".format(f_endedAt)
+        if startedAt:
+            f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
+            conditions = conditions + "`startedAt` >={} ".format(f_startedAt)
+        if elapsed:
+            conditions = conditions + "`elapsed` >={} ".format(elapsed)
+        if method:
+            conditions = conditions + "`method` ={} ".format(method)
+        if name:
+            conditions = conditions + "`name` ={} ".format(name)
+
+        self.cursor.execute(
+            'SELECT * FROM "{table_name}" {conditions}'.format(
+                table_name=self.table_name,
                 conditions=conditions
                 )
         )
-        rows = self.c.fetchall()
-        for row in rows:
-            print row
+        rows = self.cursor.fetchall()
+        return (self.jsonify_row(row) for row in rows)
 
     def get(self, measurementId):
-        self.c.execute(
+        self.cursor.execute(
             'SELECT * FROM "{table_name}" WHERE ID={measurementId}'.format(
-                table_name=table_name,
+                table_name=self.table_name,
                 measurementId=measurementId
                 )
         )
-        rows = self.c.fetchall()
-        for row in rows:
-            print row
+        rows = self.cursor.fetchall()
+        record = rows[0]
+        return self.jsonify_row(record)
 
-    def getSummary(self, kwargs):
+    def delete(self, measurementId):
+        self.cursor.execute(
+            'DELETE FROM "{table_name}" WHERE ID={measurementId}'.format(
+                table_name=self.table_name,
+                measurementId=measurementId
+                )
+        )
+        return self.connection.commit()
+
+
+    def jsonify_row(self, row):
+        data = {
+            "id": row[0],
+            "startedAt": row[1],
+            "endedAt": row[2],
+            "elapsed": row[3],
+            "method": row[4],
+            "context": {
+                "url": row[5],
+                "form": row[6],
+                "body": row[7],
+                "headers": row[8]
+            },
+            "name": row[9]
+        }
+        return data
+
+    def getSummary(self, kwargs={}):
         endedAt = kwargs.get('endedAt', None)
         startedAt = kwargs.get('startedAt', None)
         elapsed = kwargs.get('elapsed', None)
 
-        f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-        f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-
         conditions = ""
-        if f_endedAt:
+        if any(kwargs[k] for k in kwargs):
+            conditions = "WHERE "
+
+        if endedAt:
+            f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
             conditions = conditions + "endedAt<={} ".format(f_endedAt)
-        if f_startedAt:
+        if startedAt:
+            f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
             conditions = conditions + "startedAt>={} ".format(f_startedAt)
         if elapsed:
             conditions = conditions + "elapsed>={}".format(elapsed)
 
-        c.execute(
-            'SELECT * FROM "{table_name}" WHERE {conditions}'.format(
-                table_name=table_name,
+        self.cursor.execute(
+            'SELECT * FROM "{table_name}" {conditions}'.format(
+                table_name=self.table_name,
                 conditions=conditions
                 )
         )
-        rows = self.c.fetchall()
-        self.group_by(rows)
+        rows = self.cursor.fetchall()
+        return self.group_by(rows)
 
     def group_by(self, rows):
         result = {}
         for row in rows:
-            print row[3], row[5]
+            data = self.jsonify_row(row)
+            key = data['name'] + data['method']
+            if not key in result:
+                result[key] = [data]
+            else:
+                result[key].append(data)
+        for r in result:
+            space = result[r]
+            count = len(space)
+            elapsed_data = [i['elapsed'] for i in space]
+            method = space[0]['method']
+            name = space[0]['name']
+            if not elapsed_data:
+                continue
+            min_v = min(elapsed_data)
+            max_v = max(elapsed_data)
+            average = sum(elapsed_data) / len(elapsed_data)
+            result[r] = {
+                "count": count,
+                "min": min_v,
+                "max": max_v,
+                "avg": average,
+                "method": method,
+                "name": name
+            }
+        return result.values()
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        return self.connection.close()
 
-
-
-
-c.close()

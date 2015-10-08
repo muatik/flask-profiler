@@ -24,7 +24,7 @@ class Mongo(BaseStorage):
         self.db = self.client[self.database_name]
         self.collection = self.db[self.collection_name]
 
-    def filter(self, kwargs):
+    def filter(self, kwargs={}):
         query = {}
         limit = kwargs.get('limit', 100000)
         skip = kwargs.get('skip', 0)
@@ -74,7 +74,7 @@ class Mongo(BaseStorage):
             return True
         return False
 
-    def getSummary(self,  kwargs):
+    def getSummary(self,  kwargs={}):
         match_condition = {}
         endedAt = kwargs.get('endedAt', None)
         startedAt = kwargs.get('startedAt', None)
