@@ -34,4 +34,5 @@ def raiseException():
 
 flask_profiler.init_app(app)
 if __name__ == '__main__':
-    app.run(host="192.168.34.15")
+    # app.run(host="192.168.34.15")
+    app.run()
