@@ -50,31 +50,31 @@ class Measurement(object):
             self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
-def wrap_to_measure(f, name, method, context=None):
+def measure(f, name, method, context=None):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
+        if not collection:
+            raise Exception(
+                "before measuring anything, you need to call init_app()")
+
         measurement = Measurement(name, args, kwargs, method, context)
         measurement.start()
 
         try:
             returnVal = f(*args, **kwargs)
         except Exception, e:
-            returnVal = None
+            raise e
         finally:
             measurement.stop()
-
-        # if not collection:
-        #     raise Exception(
-        #         "before measuring anything, you need to call init_app()")
-        # collection.insert(measurement.__json__())
-        pp(measurement.__json__())
+            # pp(measurement.__json__())
+            collection.insert(measurement.__json__())
 
         return returnVal
 
     return wrapper
 
 
-def wrap_http_endpoint(endpoint, f, request=None):
+def wrapHttpEndpoint(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         context = {
@@ -82,9 +82,10 @@ def wrap_http_endpoint(endpoint, f, request=None):
             "args": dict(request.args.items()),
             "form": dict(request.form.items()),
             "body": request.data,
-            "headers": dict(request.headers.items())}
-        print(request.url_rule)
-        wrapped = wrap_to_measure(f, endpoint, request.method, context)
+            "headers": dict(request.headers.items()),
+            "func": request.endpoint}
+        endpoint_name = str(request.url_rule)
+        wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
     return wrapper
 
@@ -96,10 +97,16 @@ def wrapAppEndpoints(app):
     supposed not to change endpoint behaviour.
     """
     for endpoint, func in app.view_functions.iteritems():
-        app.view_functions[endpoint] = wrap_http_endpoint(
-            endpoint,
-            func,
-            request=request)
+        app.view_functions[endpoint] = wrapHttpEndpoint(func)
+
+
+def profile(*args, **kwargs):
+    """
+    http endpoint decorator
+    """
+    def wrapper(f):
+        return wrapHttpEndpoint(f)
+    return wrapper
 
 
 def registerInternalRouters(app):
@@ -121,13 +128,9 @@ def registerInternalRouters(app):
         args = dict(request.args.items())
         return jsonify(collection.getSummary(args))
 
-    @app.route("/flaskp/measuremetns/<measurementId>/context")
+    @app.route("/flaskp/measuremetns/<measurementId>")
     def getContext(measurementId):
         return jsonify(collection.getContext(measurementId))
-
-    @app.route("/flaskp/measuremetns/<measurementId>/context")
-    def getMeasurement(measurementId):
-        return jsonify(collection.get(measurementId))
 
 
 def init_app(app):
@@ -147,10 +150,3 @@ def init_app(app):
 
     import rot
     rot.init(app)
-
-
-def profile(*args, **kwargs):
-    def wrapper(f):
-        name = kwargs.get("name", f.__name__)
-        return wrap_http_endpoint(name, f, request=request)
-    return wrapper
