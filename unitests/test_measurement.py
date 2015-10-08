@@ -13,7 +13,7 @@ def doWait(seconds, **kwargs):
 class MeasurementTest(BasetTest):
 
     def setUp(self):
-        flask_profiler.collection.remove()
+        flask_profiler.collection.truncate()
 
     def test_01_returnValue(self):
         wrapped = measure(doWait, "doWait", "call", context=None)
@@ -25,8 +25,7 @@ class MeasurementTest(BasetTest):
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 2
         result = wrapped(waitSeconds)
-
-        m = flask_profiler.collection.find()[0]
+        m = list(flask_profiler.collection.filter())[0]
         self.assertEqual(m["name"], "doWait")
         self.assertTrue(float(m["elapsed"]) >= waitSeconds)
 
@@ -36,11 +35,10 @@ class MeasurementTest(BasetTest):
         method = "invoke"
         wrapped = measure(doWait, name, method, context=context)
 
-        waitSeconds = 0
+        waitSeconds = 1
         kwargs = {"k1": "kval1", "k2": "kval2"}
         result = wrapped(waitSeconds, **kwargs)
-
-        m = flask_profiler.collection.find()[0]
+        m = list(flask_profiler.collection.filter())[0]
         self.assertEqual(m["name"], name)
         self.assertEqual(m["method"], method)
         self.assertEqual(m["args"][0], waitSeconds)

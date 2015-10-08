@@ -8,4 +8,8 @@ def getCollection(conf):
         return Mongo(conf)
     elif engine == "sqlite":
         from sqlite import Sqlite
-        return Mongo(conf)
+        return Sqlite(conf)
+    else:
+        raise ValueError(
+            ("flask-profiler requires a valid storage engine but it is missing"
+                " or wrong. provided engine: {}".format(engine)))

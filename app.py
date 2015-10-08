@@ -4,7 +4,16 @@ from flask_profiler import flask_profiler
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
-app.config["flask_profiler"] = {}
+app.config["flask_profiler"] = {
+    "storage": {
+        "engine": "mongodb"
+    }
+}
+# app.config["flask_profiler"] = {
+#     "storage": {
+#         "engine": "sqlite"
+#     }
+# }
 # app.config.from_object(config)
 
 

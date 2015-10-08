@@ -121,7 +121,8 @@ def registerInternalRouters(app):
     @app.route("/flaskp/filter/")
     def filterMeasurements():
         args = dict(request.args.items())
-        return jsonify(collection.find(args))
+        measurements = collection.filter(args)
+        return jsonify({"measurements": list(measurements)})
 
     @app.route("/flaskp/summary/")
     def getMeasurementsSummary():
@@ -147,6 +148,3 @@ def init_app(app):
     collection = storage.getCollection(CONF.get("storage", {}))
     wrapAppEndpoints(app)
     registerInternalRouters(app)
-
-    import rot
-    rot.init(app)

@@ -42,15 +42,15 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
     def test_02_without_profiler(self):
         response = self.client.get("/api/without/profiler")
         self.assertEquals(response.data, "without profiler")
-        measurements = flask_profiler.collection.find()
-        self.assertEquals(measurements.count(), 0)
+        measurements = list(flask_profiler.collection.filter())
+        self.assertEquals(len(measurements), 0)
 
     def test_02_with_profiler(self):
         response = self.client.get("/api/with/profiler/hello?q=1")
         self.assertEquals(response.data, "with profiler")
 
-        measurements = flask_profiler.collection.find()
-        self.assertEquals(measurements.count(), 1)
+        measurements = list(flask_profiler.collection.filter())
+        self.assertEquals(len(measurements), 1)
         m = measurements[0]
         self.assertEqual(m["name"], "/api/with/profiler/<message>")
         self.assertEqual(m["method"], "GET")

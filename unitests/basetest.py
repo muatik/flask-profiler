@@ -9,19 +9,21 @@ from flask_profiler import flask_profiler
 from flask_profiler import storage
 
 CONF = {
-    "engine": "mongodb",
-    "database": "flask_profiler_test",
-    "collection": "profiler",
-    "mongo_url": ""
+    "storage": {
+        "engine": "mongodb",
+        "DATABASE": "flask_profiler_test",
+        "COLLECTION": "profiler",
+        "MONGO_URL": "mongodb://localhost"
+    }
 }
 
 
 class BasetTest(unittest.TestCase):
 
     def setUp(cls):
-        flask_profiler.collection.remove()
+        flask_profiler.collection.truncate()
 
     @classmethod
     def setUpClass(cls):
 
-        flask_profiler.collection = storage.getCollection(CONF)
+        flask_profiler.collection = storage.getCollection(CONF["storage"])

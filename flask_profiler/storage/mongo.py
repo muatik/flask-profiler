@@ -1,3 +1,4 @@
+import time
 import pymongo
 from base import BaseStorage
 import datetime
@@ -12,21 +13,25 @@ class Mongo(BaseStorage):
 
     def __init__(self, config=None):
         super(Mongo, self).__init__(),
-        self.mongo_url = "mongodb://localhost"
-        self.database_name = "profiler"
-        self.collection_name = 'instances'
         self.config = config
+        self.mongo_url = self.config.get("MONGO_URL", "mongodb://localhost")
+        self.database_name = self.config.get("DATABASE", "flask_profiler")
+        self.collection_name = self.config.get("COLLECTION", "measurements")
 
-        if hasattr(self.config, "MONGO_URL"):
-            self.mongo_url = self.config.MONGO_URL
-        if hasattr(self.config, "DATABASE"):
-            self.database_name = self.config.DATABASE
-        if hasattr(self.config, "COLLECTION"):
-            self.collection_name = self.config.COLLECTION
+        def createIndex():
+            self.collection.ensure_index(
+                [
+                    ('startedAt', 1),
+                    ('endedAt', 1),
+                    ('elapsed', 1),
+                    ('name', 1),
+                    ('method', 1)]
+                )
 
         self.client = pymongo.MongoClient(self.mongo_url)
         self.db = self.client[self.database_name]
         self.collection = self.db[self.collection_name]
+        createIndex()
 
     def filter(self, kwds={}):
         query = {}
@@ -34,9 +39,10 @@ class Mongo(BaseStorage):
         skip = kwds.get('skip', 0)
         sort_dir = kwds.get('sort', "asc")
         sort_key = kwds.get('sort_by', "_id")
-        endedAt = kwds.get('endedAt', None)
-        startedAt = kwds.get('startedAt', None)
-        elapsed = kwds.get('elapsed', None)
+
+        startedAt = float(kwds.get('startedAt', time.time() - 3600 * 24 * 7))
+        endedAt = float(kwds.get('endedAt', time.time()))
+        elapsed = float(kwds.get('elapsed', 0))
         name = kwds.get('name', None)
         method = kwds.get('method', None)
         args = kwds.get('args', None)
@@ -77,6 +83,9 @@ class Mongo(BaseStorage):
         if result:
             return True
         return False
+
+    def truncate(self):
+        self.collection.remove()
 
     def delete(self, measurementId):
         result = self.collection.remove({"_id": ObjectId(measurementId)})
@@ -121,7 +130,8 @@ class Mongo(BaseStorage):
         return result
 
     def clearify(self, obj):
-        available_types = [int, dict, str]
+        print "----------------------"
+        available_types = [int, dict, str, list]
         for k, v in obj.items():
             if any([isinstance(v, av_type) for av_type in available_types]):
                 continue

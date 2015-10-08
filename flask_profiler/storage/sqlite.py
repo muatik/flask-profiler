@@ -8,53 +8,43 @@ class Sqlite(BaseStorage):
     def __init__(self, config=None):
         super(Sqlite, self).__init__()
         self.config = config
-        self.sqlite_file = "flask_profiler.sqlite"
-        self.table_name = 'PROFILER'  # name of the table to be created
-
-        if hasattr(self.config, "SQLITE_FILE"):
-            self.sqlite_file = self.config.SQLITE_FILE
-        if hasattr(self.config, "TABLE_NAME"):
-            self.table_name = self.config.TABLE_NAME
+        self.sqlite_file = self.config.get("FILE", "fmemfweorwefry")
+        self.table_name = self.config.get("TABLE", "PROFILER")
 
         self.startedAt_head = 'startedAt'  # name of the column
         self.endedAt_head = 'endedAt'  # name of the column
         self.elapsed_head = 'elapsed'  # name of the column
         self.method_head = 'method'
-        self.url_head = 'url'  # name of the column
         self.args_head = 'args'
         self.kwargs_head = 'kwargs'
-        self.form_head = 'form'
-        self.body_head = 'body'
-        self.headers_head = 'headers'
         self.name_head = 'name'
+        self.context_head = 'context'
 
-        self.connection = sqlite3.connect(self.sqlite_file)
+        self.connection = sqlite3.connect(
+            self.sqlite_file, check_same_thread=False)
         self.cursor = self.connection.cursor()
         try:
             self.create_database()
         except sqlite3.OperationalError, e:
-            pass
+            if "already exists" not in e.message:
+                raise e
 
     def __enter__(self):
         return self
 
     def create_database(self):
-        self.cursor.execute(
-            '''CREATE TABLE {table_name}
+        sql = '''CREATE TABLE {table_name}
             (
             ID Integer PRIMARY KEY AUTOINCREMENT,
-            {startedAt} TEXT,
-            {endedAt} TEXT,
+            {startedAt} REAL,
+            {endedAt} REAL,
             {elapsed} REAL,
             {args} TEXT,
             {kwargs} TEXT,
             {method} TEXT,
-            {url} TEXT,
-            {form} TEXT,
-            {body} TEXT,
-            {headers} TEXT,
+            {context} TEXT,
             {name} TEXT
-            )
+            );
         '''.format(
                 table_name=self.table_name,
                 startedAt=self.startedAt_head,
@@ -63,50 +53,48 @@ class Sqlite(BaseStorage):
                 args=self.args_head,
                 kwargs=self.kwargs_head,
                 method=self.method_head,
-                url=self.url_head,
-                form=self.form_head,
-                body=self.body_head,
-                headers=self.headers_head,
+                context=self.context_head,
                 name=self.name_head
             )
-        )
+        self.cursor.execute(sql)
+
+        sql = """
+        CREATE INDEX measurement_index ON {table_name}
+            ({startedAt}, {endedAt}, {elapsed}, {name}, {method});
+        """.format(
+            startedAt=self.startedAt_head,
+            endedAt=self.endedAt_head,
+            elapsed=self.elapsed_head,
+            name=self.name_head,
+            method=self.method_head,
+            table_name=self.table_name)
+        self.cursor.execute(sql)
+
         self.connection.commit()
 
     def insert(self, kwds):
         endedAt = kwds.get('endedAt', None)
         startedAt = kwds.get('startedAt', None)
         elapsed = kwds.get('elapsed', None)
-        args = kwds.get('args', ())
-        kwargs = kwds.get('kwargs', ())
-        context = kwds.get('context', {})
+        args = str(kwds.get('args', ()))
+        kwargs = str(kwds.get('kwargs', ()))
+        context = json.dumps(kwds.get('context', {}))
         method = kwds.get('method', None)
         name = kwds.get('name', None)
-        url = context.get('url', None)
-        form = context.get('form', None)
-        body = context.get('body', None)
-        headers = context.get('headers', None)
 
-        f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-        f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-        f_context = json.dumps(context)
-        self.cursor.execute(
-            '''INSERT INTO "{table_name}" VALUES
-            ( {id}, "{startedAt}", "{endedAt}", {elapsed}, "{args}",
-             "{kwargs}", "{method}","{url}", "{form}", "{body}",
-             "{headers}", "{name}")'''.format(
-                id="null",
-                table_name=self.table_name,
-                startedAt=f_startedAt,
-                endedAt=f_endedAt,
-                elapsed=elapsed,
-                args=args,
-                kwargs=kwargs,
-                method=method,
-                url=url,
-                form=form,
-                body=body,
-                headers=headers,
-                name=name))
+        sql = """INSERT INTO {} VALUES (
+            null, ?, ?, ?, ?,?, ?, ?, ?)""".format(self.table_name)
+
+        self.cursor.execute(sql, (
+                startedAt,
+                endedAt,
+                elapsed,
+                args,
+                kwargs,
+                method,
+                context,
+                name))
+
         self.connection.commit()
 
     def filter(self, kwds={}):
@@ -161,6 +149,10 @@ class Sqlite(BaseStorage):
         record = rows[0]
         return self.jsonify_row(record)
 
+    def truncate(self):
+        self.cursor.execute("DELETE FROM {}".format(self.table_name))
+        self.connection.commit()
+
     def delete(self, measurementId):
         self.cursor.execute(
             'DELETE FROM "{table_name}" WHERE ID={measurementId}'.format(
@@ -179,14 +171,10 @@ class Sqlite(BaseStorage):
             "args": row[4],
             "kwargs": row[5],
             "method": row[6],
-            "context": {
-                "url": row[7],
-                "form": row[8],
-                "body": row[9],
-                "headers": row[10]
-            },
-            "name": row[11]
+            "context": json.loads(row[7]),
+            "name": row[8]
         }
+
         return data
 
     def getSummary(self, kwds={}):
