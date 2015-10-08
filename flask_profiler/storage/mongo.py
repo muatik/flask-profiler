@@ -3,24 +3,28 @@ from base import BaseStorage
 import datetime
 from bson.objectid import ObjectId
 
+
 class Mongo(BaseStorage):
-    """docstring for Mongo"""
+    """
+    To use this class, you have to provide a config dictionary which contains
+    "MONGO_URL", "DATABASE" and "COLLECTION".
+    """
 
     def __init__(self, config=None):
         super(Mongo, self).__init__(),
-        self.host = "localhost"
+        self.mongo_url = "mongodb://localhost"
         self.database_name = "profiler"
         self.collection_name = 'instances'
         self.config = config
 
-        if hasattr(self.config, "MONGO_HOST"):
-            self.host = self.config.MONGO_HOST
+        if hasattr(self.config, "MONGO_URL"):
+            self.mongo_url = self.config.MONGO_URL
         if hasattr(self.config, "DATABASE"):
             self.database_name = self.config.DATABASE
         if hasattr(self.config, "COLLECTION"):
             self.collection_name = self.config.COLLECTION
 
-        self.client = pymongo.MongoClient(self.host)
+        self.client = pymongo.MongoClient(self.mongo_url)
         self.db = self.client[self.database_name]
         self.collection = self.db[self.collection_name]
 
@@ -48,11 +52,11 @@ class Mongo(BaseStorage):
         if method:
             query['method'] = method
         if endedAt:
-            query['endedAt'] = { "$lte": endedAt }
+            query['endedAt'] = {"$lte": endedAt}
         if startedAt:
-            query['startedAt'] = { "$gt": startedAt }
+            query['startedAt'] = {"$gt": startedAt}
         if elapsed:
-            query['elapsed'] = { "$gte": elapsed }
+            query['elapsed'] = {"$gte": elapsed}
         if args:
             query['args'] = args
         if kwargs:
@@ -93,26 +97,27 @@ class Mongo(BaseStorage):
         if method:
             match_condition['method'] = method
         if endedAt:
-            match_condition['endedAt'] = { "$lte": endedAt }
+            match_condition['endedAt'] = {"$lte": endedAt}
         if startedAt:
-            match_condition['startedAt'] = { "$gt": startedAt }
+            match_condition['startedAt'] = {"$gt": startedAt}
         if elapsed:
-            match_condition['elapsed'] = { "$gte": elapsed }
+            match_condition['elapsed'] = {"$gte": elapsed}
 
         result = self.collection.aggregate([
-                    {"$match": match_condition },
-                    {"$group": {
-                        "_id": {
-                            "method": "$method",
-                            "name": "$name"
-                            },
-                        "count": { "$sum": 1},
-                        "min": {"$min": "$elapsed" },
-                        "max": {"$max": "$elapsed" },
-                        "avg": {"$avg": "$elapsed" }
-                        }
-                    }]
-                )
+            {"$match": match_condition},
+            {
+                "$group": {
+                    "_id": {
+                        "method": "$method",
+                        "name": "$name"
+                       },
+                    "count": {"$sum": 1},
+                    "min": {"$min": "$elapsed"},
+                    "max": {"$max": "$elapsed"},
+                    "avg": {"$avg": "$elapsed"}
+                }
+            }
+            ])
         return result
 
     def clearify(self, obj):

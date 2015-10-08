@@ -2,12 +2,10 @@
 
 
 def getCollection(conf):
-    if conf.get("engine", "mongodb").lower() == "mongodb":
-        return getMongoCollection(conf)
-
-
-def getMongoCollection(conf):
-    from pymongo import MongoClient
-    db = MongoClient()[conf.get("database", "flask_profiler")]
-    collection = db[conf.get("collection", "measurements")]
-    return collection
+    engine = conf.get("engine", "").lower()
+    if engine == "mongodb":
+        from mongo import Mongo
+        return Mongo(conf)
+    elif engine == "sqlite":
+        from sqlite import Sqlite
+        return Mongo(conf)
