@@ -24,17 +24,19 @@ class Mongo(BaseStorage):
         self.db = self.client[self.database_name]
         self.collection = self.db[self.collection_name]
 
-    def filter(self, kwargs={}):
+    def filter(self, kwds={}):
         query = {}
-        limit = kwargs.get('limit', 100000)
-        skip = kwargs.get('skip', 0)
-        sort_dir = kwargs.get('sort', "asc")
-        sort_key = kwargs.get('sort_by', "_id")
-        endedAt = kwargs.get('endedAt', None)
-        startedAt = kwargs.get('startedAt', None)
-        elapsed = kwargs.get('elapsed', None)
-        name = kwargs.get('name', None)
-        method = kwargs.get('method', None)
+        limit = kwds.get('limit', 100000)
+        skip = kwds.get('skip', 0)
+        sort_dir = kwds.get('sort', "asc")
+        sort_key = kwds.get('sort_by', "_id")
+        endedAt = kwds.get('endedAt', None)
+        startedAt = kwds.get('startedAt', None)
+        elapsed = kwds.get('elapsed', None)
+        name = kwds.get('name', None)
+        method = kwds.get('method', None)
+        args = kwds.get('args', None)
+        kwargs = kwds.get('kwargs', None)
 
         if sort_dir == "desc":
             sort_dir = pymongo.DESCENDING
@@ -51,6 +53,10 @@ class Mongo(BaseStorage):
             query['startedAt'] = { "$gt": startedAt }
         if elapsed:
             query['elapsed'] = { "$gte": elapsed }
+        if args:
+            query['args'] = args
+        if kwargs:
+            query['kwargs'] = kwargs
 
         if limit:
             cursor = self.collection.find(

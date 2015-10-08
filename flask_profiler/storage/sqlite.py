@@ -21,6 +21,7 @@ class Sqlite(BaseStorage):
         self.method_head = 'method'
         self.url_head = 'url' # name of the column
         self.args_head = 'args'
+        self.kwargs_head = 'kwargs'
         self.form_head = 'form'
         self.body_head = 'body'
         self.headers_head = 'headers'
@@ -30,8 +31,8 @@ class Sqlite(BaseStorage):
         self.cursor = self.connection.cursor()
         try:
             self.create_database()
-        except Exception, e:
-            print e.message
+        except sqlite3.OperationalError, e:
+            pass
 
     def __enter__(self):
         return self
@@ -44,6 +45,8 @@ class Sqlite(BaseStorage):
         {startedAt} TEXT,
         {endedAt} TEXT,
         {elapsed} REAL,
+        {args} TEXT,
+        {kwargs} TEXT,
         {method} TEXT,
         {url} TEXT,
         {form} TEXT,
@@ -56,6 +59,8 @@ class Sqlite(BaseStorage):
             startedAt= self.startedAt_head,
             endedAt= self.endedAt_head,
             elapsed= self.elapsed_head,
+            args = self.args_head,
+            kwargs = self.kwargs_head,
             method= self.method_head,
             url= self.url_head,
             form=self.form_head,
@@ -66,13 +71,15 @@ class Sqlite(BaseStorage):
         )
         self.connection.commit()
 
-    def insert(self, kwargs):
-        endedAt = kwargs.get('endedAt', None)
-        startedAt = kwargs.get('startedAt', None)
-        elapsed = kwargs.get('elapsed', None)
-        context = kwargs.get('context', {})
-        method = kwargs.get('method', None)
-        name = kwargs.get('name', None)
+    def insert(self, kwds):
+        endedAt = kwds.get('endedAt', None)
+        startedAt = kwds.get('startedAt', None)
+        elapsed = kwds.get('elapsed', None)
+        args = kwds.get('args', ())
+        kwargs = kwds.get('kwargs', ())
+        context = kwds.get('context', {})
+        method = kwds.get('method', None)
+        name = kwds.get('name', None)
         url = context.get('url', None)
         form = context.get('form', None)
         body = context.get('body', None)
@@ -84,13 +91,16 @@ class Sqlite(BaseStorage):
         f_context  = json.dumps(context)
         self.cursor.execute(
         '''INSERT INTO "{table_name}" VALUES
-        ( {id}, "{startedAt}", "{endedAt}", {elapsed}, "{method}",
-         "{url}", "{form}", "{body}", "{headers}", "{name}")'''.format(
+        ( {id}, "{startedAt}", "{endedAt}", {elapsed}, "{args}",
+         "{kwargs}", "{method}","{url}", "{form}", "{body}",
+         "{headers}", "{name}")'''.format(
             id="null",
             table_name= self.table_name,
             startedAt= f_startedAt,
             endedAt= f_endedAt,
             elapsed= elapsed,
+            args=args,
+            kwargs=kwargs,
             method= method,
             url= url,
             form=form,
@@ -100,30 +110,37 @@ class Sqlite(BaseStorage):
         self.connection.commit()
 
 
-    def filter(self, kwargs={}):
+    def filter(self, kwds={}):
         # Find Operation
-        endedAt = kwargs.get('endedAt', None)
-        startedAt = kwargs.get('startedAt', None)
-        elapsed = kwargs.get('elapsed', None)
-        method = kwargs.get('method', None)
-        name = kwargs.get('name', None)
+        endedAt = kwds.get('endedAt', None)
+        startedAt = kwds.get('startedAt', None)
+        elapsed = kwds.get('elapsed', None)
+        method = kwds.get('method', None)
+        name = kwds.get('name', None)
+        args = kwds.get('args' ,None)
+        kwargs = kwds.get('kwargs', None)
         conditions = ""
-        if any(kwargs[k] for k in kwargs):
+        if any(kwds[k] for k in kwds):
             conditions = "WHERE "
 
         if endedAt:
             f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + "`endedAt` <={} ".format(f_endedAt)
+            conditions = conditions + 'endedAt<="{}" AND '.format(f_endedAt)
         if startedAt:
             f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + "`startedAt` >={} ".format(f_startedAt)
+            conditions = conditions + 'startedAt>="{}" AND '.format(f_startedAt)
         if elapsed:
-            conditions = conditions + "`elapsed` >={} ".format(elapsed)
+            conditions = conditions + 'elapsed>={} AND '.format(elapsed)
         if method:
-            conditions = conditions + "`method` ={} ".format(method)
+            conditions = conditions + 'method="{}" AND '.format(method)
         if name:
-            conditions = conditions + "`name` ={} ".format(name)
+            conditions = conditions + 'name="{}" AND '.format(name)
+        if args:
+            conditions = conditions + 'args="{}" AND '.format(args)
+        if kwargs:
+            conditions = conditions + 'kwargs="{}" AND '.format(kwargs)
 
+        conditions = conditions.rstrip(" AND")
         self.cursor.execute(
             'SELECT * FROM "{table_name}" {conditions}'.format(
                 table_name=self.table_name,
@@ -160,24 +177,26 @@ class Sqlite(BaseStorage):
             "startedAt": row[1],
             "endedAt": row[2],
             "elapsed": row[3],
-            "method": row[4],
+            "args": row[4],
+            "kwargs": row[5],
+            "method": row[6],
             "context": {
-                "url": row[5],
-                "form": row[6],
-                "body": row[7],
-                "headers": row[8]
+                "url": row[7],
+                "form": row[8],
+                "body": row[9],
+                "headers": row[10]
             },
-            "name": row[9]
+            "name": row[11]
         }
         return data
 
-    def getSummary(self, kwargs={}):
-        endedAt = kwargs.get('endedAt', None)
-        startedAt = kwargs.get('startedAt', None)
-        elapsed = kwargs.get('elapsed', None)
+    def getSummary(self, kwds={}):
+        endedAt = kwds.get('endedAt', None)
+        startedAt = kwds.get('startedAt', None)
+        elapsed = kwds.get('elapsed', None)
 
         conditions = ""
-        if any(kwargs[k] for k in kwargs):
+        if any(kwds[k] for k in kwds):
             conditions = "WHERE "
 
         if endedAt:
@@ -230,4 +249,3 @@ class Sqlite(BaseStorage):
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.connection.close()
-
