@@ -1,5 +1,22 @@
+# Flask-profiler
+
+##### Flask-profiler measures endpoints defined in your flaks application; and provides you fine-grained report through a web interface.
+
+It gives answer to these questions:
+* where are the bottlenecks in my application?
+* What endpoints are the Wslowest in my application?
+* What are the most frequent called endpoints?
+* What casues a slow endpoint? In which context, with what args and kwargs is it slow?
+* How much time did a specific request take?
+
+In short, if you are curious about what your endpoints are doing and what requests they are receiving, give a try to flask-profiler.
+
+With flask-profiler's web interface, you can monitor all your endpoints' performance and investigate endpoints and received requests by drilling down through filters. 
+
+[[screenshots]]
+
 ## Quick Start
-It is easy to understand flask-profiler through an example. Let's dive in.
+It is easy to understand flask-profiler going through an example. Let's dive in.
 
 Install flask-profiler by pip.
 ```sh
@@ -91,7 +108,7 @@ app.config["flask_profiler"] = {
 Below the other options are listed.
 
 | Filter key   |      Description      |  Default |
-|----------|-------------|------:|
+|----------|-------------|------|
 | storage.FILE | sqlite database file name | flask_profiler.sql|
 | storage.TABLE | table name in which profiling data will reside | PROFILER |
 
@@ -108,8 +125,8 @@ app.config["flask_profiler"] = {
 
 Below the other options are listed.
 
-| Filter key   |      Description      |  Default |
-|----------|-------------|------:|
-| storage.MONGO_URL | mongodb connection string e.g. mongodb://localhost:27020/mydatabase | mongodb://localhost |
-| storage.DATABASE | database name | flask_profiler |
-| storage.COLLECTION | collection name | measurements |
+| Filter key   |      Description      |  Default 
+|----------|-------------|------
+| storage.MONGO_URL | mongodb connection string | mongodb://localhost 
+| storage.DATABASE | database name | flask_profiler 
+| storage.COLLECTION | collection name | measurements 
