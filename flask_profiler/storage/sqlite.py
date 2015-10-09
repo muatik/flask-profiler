@@ -8,7 +8,7 @@ class Sqlite(BaseStorage):
     def __init__(self, config=None):
         super(Sqlite, self).__init__()
         self.config = config
-        self.sqlite_file = self.config.get("FILE", "fmemfweorwefry")
+        self.sqlite_file = self.config.get("FILE", "flask_profiler.sql")
         self.table_name = self.config.get("TABLE", "PROFILER")
 
         self.startedAt_head = 'startedAt'  # name of the column

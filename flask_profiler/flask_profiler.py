@@ -11,7 +11,7 @@ collection = None
 
 class Measurement(object):
     """represents an endpoint measurement"""
-    DECIMAL_PLACES = 5
+    DECIMAL_PLACES = 6
 
     def __init__(self, name, args, kwargs, method, context=None):
         super(Measurement, self).__init__()
@@ -66,7 +66,7 @@ def measure(f, name, method, context=None):
             raise e
         finally:
             measurement.stop()
-            # pp(measurement.__json__())
+            pp(measurement.__json__())
             collection.insert(measurement.__json__())
 
         return returnVal
@@ -118,18 +118,22 @@ def registerInternalRouters(app):
     via wrapAppEndpoints()
     """
 
-    @app.route("/flaskp/filter/")
-    def filterMeasurements():
+    urlPath = CONF.get("urlPath", "flask-profiler")
+
+    @app.route("/{}/measurements/".format(urlPath))
+    def filtermeasurements():
         args = dict(request.args.items())
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
-    @app.route("/flaskp/summary/")
-    def getMeasurementsSummary():
+    @app.route("/{}/measurements/grouped/".format(urlPath))
+    def getmeasurementsSummary():
         args = dict(request.args.items())
-        return jsonify(collection.getSummary(args))
+        print args
+        measurements = collection.getSummary(args)
+        return jsonify({"measurements": list(measurements)})
 
-    @app.route("/flaskp/measuremetns/<measurementId>")
+    @app.route("/{}/measurements/<measurementId>".format(urlPath))
     def getContext(measurementId):
         return jsonify(collection.getContext(measurementId))
 

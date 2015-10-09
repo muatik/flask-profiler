@@ -33,22 +33,22 @@ class Mongo(BaseStorage):
         self.collection = self.db[self.collection_name]
         createIndex()
 
-    def filter(self, kwds={}):
+    def filter(self, filtering={}):
         query = {}
-        limit = kwds.get('limit', 100000)
-        skip = kwds.get('skip', 0)
-        sort_dir = kwds.get('sort', "asc")
-        sort_key = kwds.get('sort_by', "_id")
+        limit = filtering.get('limit', 100000)
+        skip = filtering.get('skip', 0)
+        sort = filtering.get('sort', "endedAt,desc").split(",")
 
-        startedAt = float(kwds.get('startedAt', time.time() - 3600 * 24 * 7))
-        endedAt = float(kwds.get('endedAt', time.time()))
-        elapsed = float(kwds.get('elapsed', 0))
-        name = kwds.get('name', None)
-        method = kwds.get('method', None)
-        args = kwds.get('args', None)
-        kwargs = kwds.get('kwargs', None)
+        startedAt = float(
+            filtering.get('startedAt', time.time() - 3600 * 24 * 7))
+        endedAt = float(filtering.get('endedAt', time.time()))
+        elapsed = float(filtering.get('elapsed', 0))
+        name = filtering.get('name', None)
+        method = filtering.get('method', None)
+        args = filtering.get('args', None)
+        kwargs = filtering.get('kwargs', None)
 
-        if sort_dir == "desc":
+        if sort[1] == "desc":
             sort_dir = pymongo.DESCENDING
         else:
             sort_dir = pymongo.ASCENDING
@@ -71,11 +71,11 @@ class Mongo(BaseStorage):
         if limit:
             cursor = self.collection.find(
                 query
-                ).sort(sort_key, sort_dir).skip(skip)
+                ).sort(sort[0], sort_dir).skip(skip)
         else:
             cursor = self.collection.find(
                 query
-                ).sort(sort_key, sort_dir).skip(skip).limit(limit)
+                ).sort(sort[0], sort_dir).skip(skip).limit(limit)
         return (self.clearify(record) for record in cursor)
 
     def insert(self, recordDictionary):
@@ -93,13 +93,14 @@ class Mongo(BaseStorage):
             return True
         return False
 
-    def getSummary(self,  kwargs={}):
+    def getSummary(self,  filtering={}):
         match_condition = {}
-        endedAt = kwargs.get('endedAt', None)
-        startedAt = kwargs.get('startedAt', None)
-        elapsed = kwargs.get('elapsed', None)
-        name = kwargs.get('name', None)
-        method = kwargs.get('method', None)
+        endedAt = filtering.get('endedAt', None)
+        startedAt = filtering.get('startedAt', None)
+        elapsed = filtering.get('elapsed', None)
+        name = filtering.get('name', None)
+        method = filtering.get('method', None)
+        sort = filtering.get('sort', "count,desc").split(",")
 
         if name:
             match_condition['name'] = name
@@ -111,6 +112,11 @@ class Mongo(BaseStorage):
             match_condition['startedAt'] = {"$gt": startedAt}
         if elapsed:
             match_condition['elapsed'] = {"$gte": elapsed}
+
+        if sort[1] == "desc":
+            sort_dir = -1
+        else:
+            sort_dir = 1
 
         result = self.collection.aggregate([
             {"$match": match_condition},
@@ -125,6 +131,9 @@ class Mongo(BaseStorage):
                     "max": {"$max": "$elapsed"},
                     "avg": {"$avg": "$elapsed"}
                 }
+            },
+            {
+                "$sort": {sort[0]: sort_dir}
             }
             ])
         return result

@@ -1,0 +1,115 @@
+## Quick Start
+It is easy to understand flask-profiler through an example. Let's dive in.
+
+Install flask-profiler by pip.
+```sh
+pip install flask-profiler
+```
+
+
+Edit your code where you are creating Flask app.
+```python
+# your app.py
+from flask import Flask
+from flask_profiler import flask_profiler
+
+app = Flask(__name__)
+app.config["DEBUG"] = True
+
+# You need to declare necessary configuration to initialize flask-profiler as follows:
+app.config["flask_profiler"] = {
+    "enabled": app.config["DEBUG"],
+    "storage": {
+        "engine": "sqlite"
+    }
+}
+
+
+@app.route('/product/<id>', methods=['GET'])
+def getProduct(id):
+    return "product id is " + str(id)
+
+@app.route('/product/<id>', methods=['PUT'])
+def updateProduct(id):
+    return "product {} is being updated".format(id)
+
+@app.route('/products', methods=['GET'])
+def listProducts():
+    return "suppose I send you product list..."
+
+# In order to active flask-profiler, you have to pass flask
+# app as an argument to flask-provider.
+# All the endpoints declared so far will be tracked by flask-provider.
+flask_profiler.init_app(app)
+
+# endpoint declarations after flask_profiler.init_app() will be
+# hidden to flask_profider.
+@app.route('/doSomething', methods=['GET'])
+def doSomething():
+    return "flask-provider will not measure this."
+
+# But in case you want an endpoint to be measured by flask-provider,
+# you can specify this explicitly by using profile() decorator
+@app.route('/doSomething', methods=['GET'])
+@flask_profiler.profile()
+def doSomethingImportant():
+    return "flask-provider will measure this request."
+
+if __name__ == '__main__':
+    app.run(host="127.0.0.1", port=5000)
+
+```
+
+Now run your `app.py`
+```
+python app.py
+```
+
+And make some requests like:
+```sh
+curl http://127.0.0.1:5000/products
+curl http://127.0.0.1:5000/product/123
+curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
+```
+
+If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as json http://127.0.0.1:5000/flask-profiler/measuremetns?sort=elapsed,desc
+
+## Using with different database system
+Currently **Sqlite** and **Mongodb** database system are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documantation. (It is really easy.)
+
+### Sqlite
+In order to use Sqlite, just specify it as the value of `storage.engine` directive as follows.
+
+```json
+app.config["flask_profiler"] = {
+    "storage": {
+        "engine": "sqlite",
+    }
+}
+```
+
+Below the other options are listed.
+
+| Filter key   |      Description      |  Default |
+|----------|-------------|------:|
+| storage.FILE | sqlite database file name | flask_profiler.sql|
+| storage.TABLE | table name in which profiling data will reside | PROFILER |
+
+### Mongodb
+In order to use Mongodb, just specify it as the value of `storage.engine` directive as follows.
+
+```json
+app.config["flask_profiler"] = {
+    "storage": {
+        "engine": "mongodb",
+    }
+}
+```
+
+Below the other options are listed.
+
+| Filter key   |      Description      |  Default |
+|----------|-------------|------:|
+| storage.MONGO_URL | mongodb connection string e.g. mongodb://localhost:27020/mydatabase | mongodb://localhost |
+| storage.DATABASE | database name | flask_profiler |
+| storage.COLLECTION | collection name | measurements |
