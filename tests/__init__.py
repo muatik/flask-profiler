@@ -2,7 +2,7 @@ import unittest
 
 
 from .test_measurement import MeasurementTest
-from .test_measurement import EndpointMeasurementTest
+from .test_measure_endpoint import EndpointMeasurementTest
 
 
 def suite():

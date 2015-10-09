@@ -31,7 +31,7 @@ setup(
     description='API endpoint profiler for Flask framework',
     long_description=open('README.md').read(),
     packages=['flask_profiler'],
-    test_suite="unittests.suite",
+    test_suite="tests.suite",
     zip_safe=False,
     platforms='any',
     install_requires=install_requires,

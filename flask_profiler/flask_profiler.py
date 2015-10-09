@@ -6,6 +6,7 @@ from flask import request, jsonify
 import storage
 from pprint import pprint as pp
 
+CONF = {}
 collection = None
 
 
@@ -66,7 +67,8 @@ def measure(f, name, method, context=None):
             raise e
         finally:
             measurement.stop()
-            pp(measurement.__json__())
+            if CONF.get("verbose", False):
+                pp(measurement.__json__())
             collection.insert(measurement.__json__())
 
         return returnVal
@@ -118,7 +120,7 @@ def registerInternalRouters(app):
     via wrapAppEndpoints()
     """
 
-    urlPath = CONF.get("urlPath", "flask-profiler")
+    urlPath = CONF.get("endpointRoot", "flask-profiler")
 
     @app.route("/{}/measurements/".format(urlPath))
     def filtermeasurements():
@@ -147,8 +149,14 @@ def init_app(app):
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "
-            "@TODO: link here")
+            "@TODO: https://github.com/muatik/flask-profiler")
+
+    if not CONF.get("enabled", False):
+        return
 
     collection = storage.getCollection(CONF.get("storage", {}))
+
     wrapAppEndpoints(app)
     registerInternalRouters(app)
+
+    print(" * flask-profiler is enabled.")

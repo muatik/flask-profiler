@@ -9,7 +9,7 @@ class Sqlite(BaseStorage):
         super(Sqlite, self).__init__()
         self.config = config
         self.sqlite_file = self.config.get("FILE", "flask_profiler.sql")
-        self.table_name = self.config.get("TABLE", "PROFILER")
+        self.table_name = self.config.get("TABLE", "measurements")
 
         self.startedAt_head = 'startedAt'  # name of the column
         self.endedAt_head = 'endedAt'  # name of the column
@@ -76,8 +76,8 @@ class Sqlite(BaseStorage):
         endedAt = kwds.get('endedAt', None)
         startedAt = kwds.get('startedAt', None)
         elapsed = kwds.get('elapsed', None)
-        args = str(kwds.get('args', ()))
-        kwargs = str(kwds.get('kwargs', ()))
+        args = json.dumps(list(kwds.get('args', ())))  # tuple -> list -> json
+        kwargs = json.dumps(kwds.get('kwargs', ()))
         context = json.dumps(kwds.get('context', {}))
         method = kwds.get('method', None)
         name = kwds.get('name', None)
@@ -168,8 +168,8 @@ class Sqlite(BaseStorage):
             "startedAt": row[1],
             "endedAt": row[2],
             "elapsed": row[3],
-            "args": row[4],
-            "kwargs": row[5],
+            "args": tuple(json.loads(row[4])),  # json -> list -> tuple
+            "kwargs": json.loads(row[5]),
             "method": row[6],
             "context": json.loads(row[7]),
             "name": row[8]

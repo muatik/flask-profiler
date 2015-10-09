@@ -6,12 +6,12 @@ It gives answer to these questions:
 * where are the bottlenecks in my application?
 * What endpoints are the Wslowest in my application?
 * What are the most frequent called endpoints?
-* What casues a slow endpoint? In which context, with what args and kwargs is it slow?
+* What causes a slow endpoint? In which context, with what args and kwargs is it slow?
 * How much time did a specific request take?
 
 In short, if you are curious about what your endpoints are doing and what requests they are receiving, give a try to flask-profiler.
 
-With flask-profiler's web interface, you can monitor all your endpoints' performance and investigate endpoints and received requests by drilling down through filters. 
+With flask-profiler's web interface, you can monitor all your endpoints' performance and investigate endpoints and received requests by drilling down through filters.
 
 [[screenshots]]
 
@@ -33,7 +33,8 @@ from flask_profiler import flask_profiler
 app = Flask(__name__)
 app.config["DEBUG"] = True
 
-# You need to declare necessary configuration to initialize flask-profiler as follows:
+# You need to declare necessary configuration to initialize
+# flask-profiler as follows:
 app.config["flask_profiler"] = {
     "enabled": app.config["DEBUG"],
     "storage": {
@@ -46,9 +47,11 @@ app.config["flask_profiler"] = {
 def getProduct(id):
     return "product id is " + str(id)
 
+
 @app.route('/product/<id>', methods=['PUT'])
 def updateProduct(id):
     return "product {} is being updated".format(id)
+
 
 @app.route('/products', methods=['GET'])
 def listProducts():
@@ -59,11 +62,13 @@ def listProducts():
 # All the endpoints declared so far will be tracked by flask-provider.
 flask_profiler.init_app(app)
 
+
 # endpoint declarations after flask_profiler.init_app() will be
 # hidden to flask_profider.
 @app.route('/doSomething', methods=['GET'])
 def doSomething():
     return "flask-provider will not measure this."
+
 
 # But in case you want an endpoint to be measured by flask-provider,
 # you can specify this explicitly by using profile() decorator
@@ -74,6 +79,7 @@ def doSomethingImportant():
 
 if __name__ == '__main__':
     app.run(host="127.0.0.1", port=5000)
+
 
 ```
 
@@ -92,7 +98,7 @@ curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
 If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as json http://127.0.0.1:5000/flask-profiler/measuremetns?sort=elapsed,desc
 
 ## Using with different database system
-Currently **Sqlite** and **Mongodb** database system are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documantation. (It is really easy.)
+Currently **Sqlite** and **Mongodb** database system are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
 
 ### Sqlite
 In order to use Sqlite, just specify it as the value of `storage.engine` directive as follows.
@@ -110,7 +116,7 @@ Below the other options are listed.
 | Filter key   |      Description      |  Default |
 |----------|-------------|------|
 | storage.FILE | sqlite database file name | flask_profiler.sql|
-| storage.TABLE | table name in which profiling data will reside | PROFILER |
+| storage.TABLE | table name in which profiling data will reside | measurements |
 
 ### Mongodb
 In order to use Mongodb, just specify it as the value of `storage.engine` directive as follows.
@@ -125,8 +131,27 @@ app.config["flask_profiler"] = {
 
 Below the other options are listed.
 
-| Filter key   |      Description      |  Default 
+| Filter key   |      Description      |  Default
 |----------|-------------|------
-| storage.MONGO_URL | mongodb connection string | mongodb://localhost 
-| storage.DATABASE | database name | flask_profiler 
-| storage.COLLECTION | collection name | measurements 
+| storage.MONGO_URL | mongodb connection string | mongodb://localhost
+| storage.DATABASE | database name | flask_profiler
+| storage.COLLECTION | collection name | measurements
+
+
+## Contributing
+
+Contributions are welcome!
+
+Review the [Contributing Guidelines](https://github.com/muatik/flask-profiler/wiki/Development) for details on how to:
+
+* Submit issues
+* Add solutions to existing challenges
+* Add new challenges
+
+## Authors
+* [Musafa Atik](https://www.linkedin.com/in/muatik)
+* Fatih Sucu
+* Safa Yasin Yildirim
+
+## License
+MIT

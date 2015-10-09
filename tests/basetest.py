@@ -8,12 +8,19 @@ from flask_profiler import measure
 from flask_profiler import flask_profiler
 from flask_profiler import storage
 
+# CONF = {
+#     "enabled": True,
+#     "storage": {
+#         "engine": "mongodb",
+#         "DATABASE": "flask_profiler_test",
+#         "COLLECTION": "profiler",
+#         "MONGO_URL": "mongodb://localhost"
+#     }
+# }
 CONF = {
+    "enabled": True,
     "storage": {
-        "engine": "mongodb",
-        "DATABASE": "flask_profiler_test",
-        "COLLECTION": "profiler",
-        "MONGO_URL": "mongodb://localhost"
+        "engine": "sqlite"
     }
 }
 
