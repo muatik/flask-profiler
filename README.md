@@ -4,9 +4,9 @@
 
 It gives answer to these questions:
 * where are the bottlenecks in my application?
-* What endpoints are the Wslowest in my application?
-* What are the most frequent called endpoints?
-* What causes a slow endpoint? In which context, with what args and kwargs is it slow?
+* What endpoints are the slowest in my application?
+* Which are the most frequently called endpoints?
+* What causes my slow endpoints? In which context, with what args and kwargs are they slow?
 * How much time did a specific request take?
 
 In short, if you are curious about what your endpoints are doing and what requests they are receiving, give a try to flask-profiler.
