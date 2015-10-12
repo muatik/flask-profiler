@@ -98,7 +98,7 @@ curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
 If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as json http://127.0.0.1:5000/flask-profiler/measuremetns?sort=elapsed,desc
 
 ## Using with different database system
-Currently **Sqlite** and **Mongodb** database system are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
+Currently **Sqlite** and **Mongodb** database systems are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
 
 ### Sqlite
 In order to use Sqlite, just specify it as the value of `storage.engine` directive as follows.
