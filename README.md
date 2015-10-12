@@ -3,8 +3,8 @@
 ##### Flask-profiler measures endpoints defined in your flaks application; and provides you fine-grained report through a web interface.
 
 It gives answer to these questions:
-* where are the bottlenecks in my application?
-* What endpoints are the slowest in my application?
+* Where are the bottlenecks in my application?
+* Which endpoints are the slowest in my application?
 * Which are the most frequently called endpoints?
 * What causes my slow endpoints? In which context, with what args and kwargs are they slow?
 * How much time did a specific request take?
