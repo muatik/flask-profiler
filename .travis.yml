@@ -1,0 +1,11 @@
+language: python
+
+python:
+    - "2.7"
+
+install:
+    - pip install flask --use-mirrors
+    - pip install flask-testing --use-mirrors
+    - pip install coveralls --use-mirrors
+
+script: python setup test
