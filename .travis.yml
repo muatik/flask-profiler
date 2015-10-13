@@ -8,4 +8,4 @@ install:
     - pip install flask-testing --use-mirrors
     - pip install coveralls --use-mirrors
 
-script: python setup test
+script: python setup.py test
