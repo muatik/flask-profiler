@@ -1,6 +1,6 @@
 # Flask-profiler
 
-![Travis CI Badge](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)
+[![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
 ##### Flask-profiler measures endpoints defined in your flaks application; and provides you fine-grained report through a web interface.
 
