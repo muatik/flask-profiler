@@ -148,7 +148,7 @@ def init_app(app):
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "
-            "@TODO: https://github.com/muatik/flask-profiler")
+            "https://github.com/muatik/flask-profiler")
 
     if not CONF.get("enabled", False):
         return
