@@ -99,6 +99,7 @@ class Sqlite(BaseStorage):
 
     def filter(self, kwds={}):
         # Find Operation
+        sort = kwds.get('sort', "endedAt,desc").split(",")
         endedAt = kwds.get('endedAt', None)
         startedAt = kwds.get('startedAt', None)
         elapsed = kwds.get('elapsed', None)
@@ -130,9 +131,12 @@ class Sqlite(BaseStorage):
 
         conditions = conditions.rstrip(" AND")
         self.cursor.execute(
-            'SELECT * FROM "{table_name}" {conditions}'.format(
+            '''SELECT * FROM "{table_name}" {conditions}
+            order by {sort_field} {sort_direction}'''.format(
                 table_name=self.table_name,
-                conditions=conditions
+                conditions=conditions,
+                sort_field=sort[0],
+                sort_direction=sort[1]
                 )
         )
         rows = self.cursor.fetchall()
@@ -178,6 +182,7 @@ class Sqlite(BaseStorage):
         return data
 
     def getSummary(self, kwds={}):
+        sort = kwds.get('sort', "endedAt,desc").split(",")
         endedAt = kwds.get('endedAt', None)
         startedAt = kwds.get('startedAt', None)
         elapsed = kwds.get('elapsed', None)
@@ -194,11 +199,20 @@ class Sqlite(BaseStorage):
             conditions = conditions + "startedAt>={} ".format(f_startedAt)
         if elapsed:
             conditions = conditions + "elapsed>={}".format(elapsed)
-
-        self.cursor.execute(
-            'SELECT * FROM "{table_name}" {conditions}'.format(
+        print '''SELECT * FROM "{table_name}" {conditions}
+            order by {sort_field} {sort_direction}'''.format(
                 table_name=self.table_name,
-                conditions=conditions
+                conditions=conditions,
+                sort_field=sort[0],
+                sort_direction=sort[1]
+                )
+        self.cursor.execute(
+            '''SELECT * FROM "{table_name}" {conditions}
+            order by {sort_field} {sort_direction}'''.format(
+                table_name=self.table_name,
+                conditions=conditions,
+                sort_field=sort[0],
+                sort_direction=sort[1]
                 )
         )
         rows = self.cursor.fetchall()
