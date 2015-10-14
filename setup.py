@@ -13,6 +13,7 @@ Links
 import sys
 from setuptools import setup
 
+
 tests_require = [
     "Flask-Testing"
 ]
@@ -22,22 +23,25 @@ install_requires = [
 ]
 
 setup(
-    name='Flask-Profiler',
-    version='0.1',
+    name='flask_profiler',
+    version='0.3',
     url='https://github.com/muatik/flask-profiler',
-    license='MIT',
+    license=open('LICENSE').read(),
     author='Mustafa Atik',
     author_email='muatik@gmail.com',
     description='API endpoint profiler for Flask framework',
+    keywords=[
+        'profiler', 'flask', 'performance', 'optimization'
+    ],
     long_description=open('README.md').read(),
     packages=['flask_profiler'],
+    package_data={'flask_profiler': ['storage/*']},
     test_suite="tests.suite",
     zip_safe=False,
     platforms='any',
     install_requires=install_requires,
     tests_require=tests_require,
     classifiers=[
-        'Development Status :: 1 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',

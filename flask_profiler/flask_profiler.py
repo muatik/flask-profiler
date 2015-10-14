@@ -131,7 +131,6 @@ def registerInternalRouters(app):
     @app.route("/{}/measurements/grouped/".format(urlPath))
     def getmeasurementsSummary():
         args = dict(request.args.items())
-        print args
         measurements = collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 

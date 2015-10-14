@@ -1,6 +1,6 @@
 # your app.py
 from flask import Flask
-from flask_profiler import flask_profiler
+import flask_profiler
 
 app = Flask(__name__)
 app.config["DEBUG"] = True

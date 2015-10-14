@@ -139,7 +139,6 @@ class Mongo(BaseStorage):
         return result
 
     def clearify(self, obj):
-        print "----------------------"
         available_types = [int, dict, str, list]
         for k, v in obj.items():
             if any([isinstance(v, av_type) for av_type in available_types]):

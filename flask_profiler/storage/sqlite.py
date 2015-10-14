@@ -199,13 +199,7 @@ class Sqlite(BaseStorage):
             conditions = conditions + "startedAt>={} ".format(f_startedAt)
         if elapsed:
             conditions = conditions + "elapsed>={}".format(elapsed)
-        print '''SELECT * FROM "{table_name}" {conditions}
-            order by {sort_field} {sort_direction}'''.format(
-                table_name=self.table_name,
-                conditions=conditions,
-                sort_field=sort[0],
-                sort_direction=sort[1]
-                )
+
         self.cursor.execute(
             '''SELECT * FROM "{table_name}" {conditions}
             order by {sort_field} {sort_direction}'''.format(
