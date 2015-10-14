@@ -22,7 +22,7 @@ It is easy to understand flask-profiler going through an example. Let's dive in.
 
 Install flask-profiler by pip.
 ```sh
-pip install flask-profiler
+pip install flask_profiler
 ```
 
 
@@ -30,7 +30,7 @@ Edit your code where you are creating Flask app.
 ```python
 # your app.py
 from flask import Flask
-from flask_profiler import flask_profiler
+import flask_profiler
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
