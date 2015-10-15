@@ -1,6 +1,8 @@
 import sqlite3
 import json
 from base import BaseStorage
+from datetime import datetime
+import time
 
 
 class Sqlite(BaseStorage):
@@ -31,6 +33,22 @@ class Sqlite(BaseStorage):
 
     def __enter__(self):
         return self
+
+    @staticmethod
+    def getFilters(kwargs):
+        filters = {}
+        filters["sort"] = kwargs.get('sort', "endedAt,desc").split(",")
+        filters["endedAt"] = float(kwargs.get('endedAt', time.time()))
+        filters["startedAt"] = float(
+            kwargs.get('startedAt', time.time() - 3600 * 24 * 7))
+        filters["elapsed"] = kwargs.get('elapsed', None)
+        filters["method"] = kwargs.get('method', None)
+        filters["name"] = kwargs.get('name', None)
+        filters["args"] = json.dumps(
+            list(kwargs.get('args', ())))  # tuple -> list -> json
+        filters["kwargs"] = json.dumps(kwargs.get('kwargs', ()))
+        filters["sort"] = kwargs.get('sort', "endedAt,desc").split(",")
+        return filters
 
     def create_database(self):
         sql = '''CREATE TABLE {table_name}
@@ -97,46 +115,88 @@ class Sqlite(BaseStorage):
 
         self.connection.commit()
 
+    def getTimeserie(self, kwds={}):
+        filters = Sqlite.getFilters(kwds)
+
+        if kwds.get('interval', None) == "daily":
+            interval = "daily"
+            dateFormat = '%Y-%m-%d'
+        else:
+            interval = "hourly"
+            dateFormat = '%Y-%m-%d %H'
+
+        conditions = "where endedAt<={} AND startedAt>={} ".format(
+            filters["endedAt"], filters["startedAt"])
+
+        sql = '''SELECT
+                startedAt, count(id) as count
+            FROM "{table_name}" {conditions}
+            group by strftime("{dateFormat}", datetime(startedAt, 'unixepoch'))
+            order by startedAt asc
+            '''.format(
+                table_name=self.table_name,
+                dateFormat=dateFormat,
+                conditions=conditions
+                )
+
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+
+        results = {}
+        for row in rows:
+            fdate = datetime.fromtimestamp(row[0]).strftime(dateFormat)
+            results[fdate] = row[1]
+        return results
+
+    def getMethodDistribution(self, kwds={}):
+        f = Sqlite.getFilters(kwds)
+        conditions = "where endedAt<={} AND startedAt>={} ".format(
+            f["endedAt"], f["startedAt"])
+
+        sql = '''SELECT
+                method, count(id) as count
+            FROM "{table_name}" {conditions}
+            group by method
+            '''.format(
+                table_name=self.table_name,
+                conditions=conditions
+                )
+
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+
+        results = {}
+        for row in rows:
+            results[row[0]] = row[1]
+        return results
+
     def filter(self, kwds={}):
         # Find Operation
-        sort = kwds.get('sort', "endedAt,desc").split(",")
-        endedAt = kwds.get('endedAt', None)
-        startedAt = kwds.get('startedAt', None)
-        elapsed = kwds.get('elapsed', None)
-        method = kwds.get('method', None)
-        name = kwds.get('name', None)
-        args = kwds.get('args', None)
-        kwargs = kwds.get('kwargs', None)
-        conditions = ""
-        if any(kwds[k] for k in kwds):
-            conditions = "WHERE "
+        f = Sqlite.getFilters(kwds)
 
-        if endedAt:
-            f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + 'endedAt<="{}" AND '.format(f_endedAt)
-        if startedAt:
-            f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + 'startedAt>="{}" AND '.format(
-                f_startedAt)
-        if elapsed:
-            conditions = conditions + 'elapsed>={} AND '.format(elapsed)
-        if method:
-            conditions = conditions + 'method="{}" AND '.format(method)
-        if name:
-            conditions = conditions + 'name="{}" AND '.format(name)
-        if args:
-            conditions = conditions + 'args="{}" AND '.format(args)
-        if kwargs:
-            conditions = conditions + 'kwargs="{}" AND '.format(kwargs)
+        conditions = "WHERE 1=1 AND "
+
+        if f["endedAt"]:
+            conditions = conditions + 'endedAt<={} AND '.format(f["endedAt"])
+        if f["startedAt"]:
+            conditions = conditions + 'startedAt>={} AND '.format(
+                f["startedAt"])
+        if f["elapsed"]:
+            conditions = conditions + 'elapsed>={} AND '.format(f["elapsed"])
+        if f["method"]:
+            conditions = conditions + 'method="{}" AND '.format(f["method"])
+        if f["name"]:
+            conditions = conditions + 'name="{}" AND '.format(f["name"])
 
         conditions = conditions.rstrip(" AND")
+
         self.cursor.execute(
             '''SELECT * FROM "{table_name}" {conditions}
             order by {sort_field} {sort_direction}'''.format(
                 table_name=self.table_name,
                 conditions=conditions,
-                sort_field=sort[0],
-                sort_direction=sort[1]
+                sort_field=f["sort"][0],
+                sort_direction=f["sort"][1]
                 )
         )
         rows = self.cursor.fetchall()
@@ -182,65 +242,52 @@ class Sqlite(BaseStorage):
         return data
 
     def getSummary(self, kwds={}):
-        sort = kwds.get('sort', "endedAt,desc").split(",")
-        endedAt = kwds.get('endedAt', None)
-        startedAt = kwds.get('startedAt', None)
-        elapsed = kwds.get('elapsed', None)
+        filters = Sqlite.getFilters(kwds)
 
-        conditions = ""
-        if any(kwds[k] for k in kwds):
-            conditions = "WHERE "
+        conditions = "WHERE 1=1 and "
 
-        if endedAt:
-            f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + "endedAt<={} ".format(f_endedAt)
-        if startedAt:
-            f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + "startedAt>={} ".format(f_startedAt)
-        if elapsed:
-            conditions = conditions + "elapsed>={}".format(elapsed)
+        if filters["endedAt"]:
+            conditions = conditions + "endedAt<={} AND ".format(
+                filters["endedAt"])
+        if filters["startedAt"]:
+            conditions = conditions + "startedAt>={} AND ".format(
+                filters["startedAt"])
+        if filters["elapsed"]:
+            conditions = conditions + "elapsed>={} AND".format(
+                filters["elapsed"])
 
-        self.cursor.execute(
-            '''SELECT * FROM "{table_name}" {conditions}
-            order by {sort_field} {sort_direction}'''.format(
+        conditions = conditions.rstrip(" AND")
+
+        sql = '''SELECT
+                method, name,
+                count(id) as count,
+                min(elapsed) as minElapsed,
+                max(elapsed) as maxElapsed,
+                avg(elapsed) as avgElapsed
+            FROM "{table_name}" {conditions}
+            group by method, name
+            order by {sort_field} {sort_direction}
+            '''.format(
                 table_name=self.table_name,
                 conditions=conditions,
-                sort_field=sort[0],
-                sort_direction=sort[1]
+                sort_field=filters["sort"][0],
+                sort_direction=filters["sort"][1]
                 )
-        )
-        rows = self.cursor.fetchall()
-        return self.group_by(rows)
 
-    def group_by(self, rows):
-        result = {}
-        for row in rows:
-            data = self.jsonify_row(row)
-            key = data['name'] + data['method']
-            if key not in result:
-                result[key] = [data]
-            else:
-                result[key].append(data)
-        for r in result:
-            space = result[r]
-            count = len(space)
-            elapsed_data = [i['elapsed'] for i in space]
-            method = space[0]['method']
-            name = space[0]['name']
-            if not elapsed_data:
-                continue
-            min_v = min(elapsed_data)
-            max_v = max(elapsed_data)
-            average = sum(elapsed_data) / len(elapsed_data)
-            result[r] = {
-                "count": count,
-                "min": min_v,
-                "max": max_v,
-                "avg": average,
-                "method": method,
-                "name": name
-            }
-        return result.values()
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+
+        result = []
+        for r in rows:
+            result.append({
+                "method": r[0],
+                "name": r[1],
+                "count": r[2],
+                "minElapsed": r[3],
+                "maxElapsed": r[4],
+                "avgElapsed": r[5]
+            })
+        return result
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.connection.close()
