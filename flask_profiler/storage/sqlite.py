@@ -224,9 +224,9 @@ class Sqlite(BaseStorage):
                 "method": r[0],
                 "name": r[1],
                 "count": r[2],
-                "min": r[3],
-                "max": r[4],
-                "avg": r[5]
+                "minElapsed": r[3],
+                "maxElapsed": r[4],
+                "avgElapsed": r[5]
             })
         return result
 
