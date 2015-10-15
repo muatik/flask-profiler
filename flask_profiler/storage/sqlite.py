@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from base import BaseStorage
+import time
 
 
 class Sqlite(BaseStorage):
@@ -100,24 +101,19 @@ class Sqlite(BaseStorage):
     def filter(self, kwds={}):
         # Find Operation
         sort = kwds.get('sort', "endedAt,desc").split(",")
-        endedAt = kwds.get('endedAt', None)
-        startedAt = kwds.get('startedAt', None)
+        endedAt = float(kwds.get('endedAt', time.time()))
+        startedAt = float(kwds.get('startedAt', time.time() - 3600 * 24 * 7))
         elapsed = kwds.get('elapsed', None)
         method = kwds.get('method', None)
         name = kwds.get('name', None)
         args = kwds.get('args', None)
         kwargs = kwds.get('kwargs', None)
-        conditions = ""
-        if any(kwds[k] for k in kwds):
-            conditions = "WHERE "
+        conditions = "WHERE 1=1 AND "
 
         if endedAt:
-            f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + 'endedAt<="{}" AND '.format(f_endedAt)
+            conditions = conditions + 'endedAt<={} AND '.format(endedAt)
         if startedAt:
-            f_startedAt = startedAt.strftime("%Y-%m-%d %H:%M:%S")
-            conditions = conditions + 'startedAt>="{}" AND '.format(
-                f_startedAt)
+            conditions = conditions + 'startedAt>={} AND '.format(startedAt)
         if elapsed:
             conditions = conditions + 'elapsed>={} AND '.format(elapsed)
         if method:
@@ -130,6 +126,7 @@ class Sqlite(BaseStorage):
             conditions = conditions + 'kwargs="{}" AND '.format(kwargs)
 
         conditions = conditions.rstrip(" AND")
+
         self.cursor.execute(
             '''SELECT * FROM "{table_name}" {conditions}
             order by {sort_field} {sort_direction}'''.format(
