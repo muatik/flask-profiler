@@ -123,35 +123,35 @@ def registerInternalRouters(app):
 
     fp = Blueprint(
         'flask-profiler', __name__,
+        url_prefix="/" + urlPath,
         static_folder="static", static_url_path='/static')
 
-    @fp.route("/{}/".format(urlPath))
+    @fp.route("/".format(urlPath))
     def index():
         return fp.send_static_file("index.html")
-        return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/{}/api/measurements/".format(urlPath))
+    @fp.route("/api/measurements/".format(urlPath))
     def filtermeasurements():
         args = dict(request.args.items())
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/{}/api/measurements/grouped/".format(urlPath))
+    @fp.route("/api/measurements/grouped/".format(urlPath))
     def getmeasurementsSummary():
         args = dict(request.args.items())
         measurements = collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/{}/api/measurements/<measurementId>".format(urlPath))
+    @fp.route("/api/measurements/<measurementId>".format(urlPath))
     def getContext(measurementId):
         return jsonify(collection.get(measurementId))
 
-    @fp.route("/{}/api/measurements/timeserie/".format(urlPath))
+    @fp.route("/api/measurements/timeserie/".format(urlPath))
     def getReqiestsTimeserie():
         args = dict(request.args.items())
         return jsonify({"serie": collection.getTimeserie(args)})
 
-    @fp.route("/{}/api/measurements/methodDistribution/".format(urlPath))
+    @fp.route("/api/measurements/methodDistribution/".format(urlPath))
     def getMethodDistribution():
         args = dict(request.args.items())
         return jsonify({
