@@ -189,7 +189,7 @@ class Sqlite(BaseStorage):
 
         conditions = ""
         if any(kwds[k] for k in kwds):
-            conditions = "WHERE "
+            conditions = "WHERE 1=1 "
 
         if endedAt:
             f_endedAt = endedAt.strftime("%Y-%m-%d %H:%M:%S")
@@ -200,47 +200,35 @@ class Sqlite(BaseStorage):
         if elapsed:
             conditions = conditions + "elapsed>={}".format(elapsed)
 
-        self.cursor.execute(
-            '''SELECT * FROM "{table_name}" {conditions}
-            order by {sort_field} {sort_direction}'''.format(
+        sql = '''SELECT
+                method, name,
+                count(id) as count,
+                min(elapsed) as minElapsed,
+                max(elapsed) as maxElapsed,
+                avg(elapsed) as avgElapsed
+            FROM "{table_name}" {conditions}
+            group by method, name
+            order by {sort_field} {sort_direction}
+            '''.format(
                 table_name=self.table_name,
                 conditions=conditions,
                 sort_field=sort[0],
                 sort_direction=sort[1]
                 )
-        )
+        self.cursor.execute(sql)
         rows = self.cursor.fetchall()
-        return self.group_by(rows)
 
-    def group_by(self, rows):
-        result = {}
-        for row in rows:
-            data = self.jsonify_row(row)
-            key = data['name'] + data['method']
-            if key not in result:
-                result[key] = [data]
-            else:
-                result[key].append(data)
-        for r in result:
-            space = result[r]
-            count = len(space)
-            elapsed_data = [i['elapsed'] for i in space]
-            method = space[0]['method']
-            name = space[0]['name']
-            if not elapsed_data:
-                continue
-            min_v = min(elapsed_data)
-            max_v = max(elapsed_data)
-            average = sum(elapsed_data) / len(elapsed_data)
-            result[r] = {
-                "count": count,
-                "min": min_v,
-                "max": max_v,
-                "avg": average,
-                "method": method,
-                "name": name
-            }
-        return result.values()
+        result = []
+        for r in rows:
+            result.append({
+                "method": r[0],
+                "name": r[1],
+                "count": r[2],
+                "min": r[3],
+                "max": r[4],
+                "avg": r[5]
+            })
+        return result
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.connection.close()
