@@ -136,7 +136,18 @@ def registerInternalRouters(app):
 
     @app.route("/{}/measurements/<measurementId>".format(urlPath))
     def getContext(measurementId):
-        return jsonify(collection.getContext(measurementId))
+        return jsonify(collection.get(measurementId))
+
+    @app.route("/{}/measurements/timeserie/".format(urlPath))
+    def getReqiestsTimeserie():
+        args = dict(request.args.items())
+        return jsonify({"serie": collection.getTimeserie(args)})
+
+    @app.route("/{}/measurements/methodDistribution/".format(urlPath))
+    def getMethodDistribution():
+        args = dict(request.args.items())
+        return jsonify({
+            "distribution": collection.getMethodDistribution(args)})
 
 
 def init_app(app):
@@ -148,7 +159,7 @@ def init_app(app):
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "
-            "@TODO: https://github.com/muatik/flask-profiler")
+            "https://github.com/muatik/flask-profiler")
 
     if not CONF.get("enabled", False):
         return
