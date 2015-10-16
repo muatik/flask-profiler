@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+
+    <link href="static/dist/css/main.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="./">Flask Profiler</a>
+    </div>
+    <div class="navbar-collapse collapse">
+      <ul class="nav navbar-nav navbar-left" role="tablist">
+        <li role="presentation" class="active">
+            <a data-target="#tab-dashboard" aria-controls="tab-dashboard" role="tab" data-asd='asd' data-toggle="tab">Dashboard</a>
+        </li>
+        <li role="presentation">
+            <a data-target="#tab-all" aria-controls="tab-all" role="tab" data-asd='asd' data-toggle="tab">All</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="container">
+    <div class="col-md-10 col-md-offset-1">
+        <div class="row">
+            <div class="tab-content">
+
+                <div role="tabpanel" class="tab-pane active" id="tab-dashboard">
+                    <div class="row">
+                        <div class="col-md-12">
+                        <div class="row">
+                            <div class="btn-group day-filter" data-toggle="buttons">
+                              <label class="btn btn-primary">
+                                <input type="radio" value="hours" id="hours" autocomplete="off"> 24 hours </label>
+                              <label class="btn btn-primary active">
+                                <input type="radio" value="days" id="days" autocomplete="off" checked> 7 days </label>
+                              <label class="btn btn-primary">
+                                <input type="radio" value="all" id="all" autocomplete="off"> 30 days </label>
+                            </div>
+                            <hr>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <h4 class="text-center">Method distribution</h5>
+                                <canvas id="pieChart" width="200" height="200" style="width: 200px;height: 200px;"></canvas>
+                            </div>
+                            <div class="col-md-9">
+                                <h4 class="text-center">Request count by time</h5>
+                                <canvas id="lineChart" style="width: 100%;height: 200px;" height="100"></canvas>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <table class="table table-hover" id="big-users-table"></table>       
+                </div>
+
+                <div role="tabpanel" class="tab-pane" id="tab-all">
+                        <table class="table table-hover" id="filteredTable">
+                            <thead>
+                                <tr class="filter-row">
+                                    <th>
+                                        <select class='method form-control'>
+                                            <option value="">All</option>
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
+                                            <option value="PUT">PUT</option>
+                                            <option value="DELETE">DELETE</option>
+                                            <option value="PATCH">PATCH</option>
+                                            <option value="COPY">COPY</option>
+                                            <option value="HEAD">HEAD</option>
+                                            <option value="OPTIONS">OPTIONS</option>
+                                            <option value="LINK">LINK</option>
+                                            <option value="UNLINK">UNLINK</option>
+                                            <option value="PURGE">PURGE</option>
+                                            <option value="LOCK">LOCK</option>
+                                            <option value="UNLOCK">UNLOCK</option>
+                                            <option value="PROPFIND">PROPFIND</option>
+                                            <option value="VIEW">VIEW</option>
+                                        </select>
+                                    </th>
+                                    <th><input type="text" class="filtered-name form-control"></th>
+                                    <th><input type="text" class="elapsed form-control"></th>
+                                    <th>
+                                        <input type="text" class="filtered-datepicker form-control">
+                                    </th>
+                                </tr>
+                                <tr>
+                                    
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                </tr>
+                            </thead>
+                        </table>   
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade filteredModal" tabindex="-1" role="dialog" aria-labelledby="filteredModal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+    <div class="modal-body">  
+      </div>
+                    
+    </div>
+  </div>
+  </div>
+  
+
+<script src="static/dist/js/main.js"></script>
+
+</body>
+</html>
