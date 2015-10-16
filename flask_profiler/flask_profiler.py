@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 from timeit import default_timer
-import time
 import functools
 from flask import request, jsonify, Blueprint
 import storage
@@ -124,7 +123,7 @@ def registerInternalRouters(app):
     fp = Blueprint(
         'flask-profiler', __name__,
         url_prefix="/" + urlPath,
-        static_folder="static", static_url_path='/static')
+        static_folder="static/dist/", static_url_path='/static/dist')
 
     @fp.route("/".format(urlPath))
     def index():
@@ -149,7 +148,7 @@ def registerInternalRouters(app):
     @fp.route("/api/measurements/timeserie/".format(urlPath))
     def getReqiestsTimeserie():
         args = dict(request.args.items())
-        return jsonify({"serie": collection.getTimeserie(args)})
+        return jsonify({"serie": collection.getTimeseries(args)})
 
     @fp.route("/api/measurements/methodDistribution/".format(urlPath))
     def getMethodDistribution():

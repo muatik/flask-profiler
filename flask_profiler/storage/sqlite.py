@@ -2,7 +2,7 @@ import sqlite3
 import json
 from base import BaseStorage
 from datetime import datetime
-import time
+from timeit import default_timer
 
 
 def formatDate(timestamp, dateFormat):
@@ -42,9 +42,13 @@ class Sqlite(BaseStorage):
     def getFilters(kwargs):
         filters = {}
         filters["sort"] = kwargs.get('sort', "endedAt,desc").split(",")
-        filters["endedAt"] = float(kwargs.get('endedAt', time.time()))
+
+        # because inserting and filtering may take place at the same moment,
+        # a very little increment(0.5) is needed to find inserted record by sql.
+        filters["endedAt"] = float(kwargs.get('endedAt', default_timer() + 0.5))
         filters["startedAt"] = float(
-            kwargs.get('startedAt', time.time() - 3600 * 24 * 7))
+            kwargs.get('startedAt', default_timer() - 3600 * 24 * 7))
+
         filters["elapsed"] = kwargs.get('elapsed', None)
         filters["method"] = kwargs.get('method', None)
         filters["name"] = kwargs.get('name', None)
@@ -95,8 +99,8 @@ class Sqlite(BaseStorage):
         self.connection.commit()
 
     def insert(self, kwds):
-        endedAt = kwds.get('endedAt', None)
-        startedAt = kwds.get('startedAt', None)
+        endedAt = float(kwds.get('endedAt', None))
+        startedAt = float(kwds.get('startedAt', None))
         elapsed = kwds.get('elapsed', None)
         args = json.dumps(list(kwds.get('args', ())))  # tuple -> list -> json
         kwargs = json.dumps(kwds.get('kwargs', ()))
@@ -119,7 +123,7 @@ class Sqlite(BaseStorage):
 
         self.connection.commit()
 
-    def getTimeserie(self, kwds={}):
+    def getTimeseries(self, kwds={}):
         filters = Sqlite.getFilters(kwds)
 
         if kwds.get('interval', None) == "daily":
@@ -201,15 +205,15 @@ class Sqlite(BaseStorage):
 
         conditions = conditions.rstrip(" AND")
 
-        self.cursor.execute(
-            '''SELECT * FROM "{table_name}" {conditions}
-            order by {sort_field} {sort_direction}'''.format(
-                table_name=self.table_name,
-                conditions=conditions,
-                sort_field=f["sort"][0],
-                sort_direction=f["sort"][1]
-                )
+        sql = '''SELECT * FROM "{table_name}" {conditions}
+        order by {sort_field} {sort_direction}'''.format(
+            table_name=self.table_name,
+            conditions=conditions,
+            sort_field=f["sort"][0],
+            sort_direction=f["sort"][1]
         )
+
+        self.cursor.execute(sql)
         rows = self.cursor.fetchall()
         return (self.jsonify_row(row) for row in rows)
 
