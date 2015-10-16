@@ -5,6 +5,10 @@ from datetime import datetime
 import time
 
 
+def formatDate(timestamp, dateFormat):
+    return datetime.fromtimestamp(timestamp).strftime(dateFormat)
+
+
 class Sqlite(BaseStorage):
     """docstring for Sqlite"""
     def __init__(self, config=None):
@@ -119,14 +123,16 @@ class Sqlite(BaseStorage):
         filters = Sqlite.getFilters(kwds)
 
         if kwds.get('interval', None) == "daily":
-            interval = "daily"
+            interval = 3600 * 24   # daily
             dateFormat = '%Y-%m-%d'
         else:
-            interval = "hourly"
+            interval = 3600  # hourly
             dateFormat = '%Y-%m-%d %H'
 
+        endedAt, startedAt = filters["endedAt"], filters["startedAt"]
+
         conditions = "where endedAt<={} AND startedAt>={} ".format(
-            filters["endedAt"], filters["startedAt"])
+            endedAt, startedAt)
 
         sql = '''SELECT
                 startedAt, count(id) as count
@@ -142,16 +148,21 @@ class Sqlite(BaseStorage):
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
 
-        results = {}
-        for row in rows:
-            fdate = datetime.fromtimestamp(row[0]).strftime(dateFormat)
-            results[fdate] = row[1]
-        return results
+        series = {}
+        for i in range(int(startedAt), int(endedAt) + 1, interval):
+            series[formatDate(i, dateFormat)] = 0
 
-    def getMethodDistribution(self, kwds={}):
+        for row in rows:
+            series[formatDate(row[0], dateFormat)] = row[1]
+        return series
+
+    def getMethodDistribution(self, kwds=None):
+        if not kwds:
+            kwds = {}
         f = Sqlite.getFilters(kwds)
+        endedAt, startedAt = f["endedAt"], f["startedAt"]
         conditions = "where endedAt<={} AND startedAt>={} ".format(
-            f["endedAt"], f["startedAt"])
+            endedAt, startedAt)
 
         sql = '''SELECT
                 method, count(id) as count
