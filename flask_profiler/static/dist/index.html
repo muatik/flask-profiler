@@ -3,12 +3,14 @@
 <head>
     <title></title>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="static/dist/css/main.css" rel="stylesheet">
 
 </head>
 <body>
 <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-  <div class="container-fluid">
+  <div class="container">
+  <div class="col-md-10 col-md-offset-1">
     <div class="navbar-header">
       <a class="navbar-brand" href="./">Flask Profiler</a>
     </div>
@@ -18,37 +20,42 @@
             <a data-target="#tab-dashboard" aria-controls="tab-dashboard" role="tab" data-asd='asd' data-toggle="tab">Dashboard</a>
         </li>
         <li role="presentation">
-            <a data-target="#tab-all" aria-controls="tab-all" role="tab" data-asd='asd' data-toggle="tab">All</a>
+            <a data-target="#tab-filtering" aria-controls="tab-filtering" role="tab" data-toggle="tab">Filtering</a>
         </li>
       </ul>
+      <iframe src="https://ghbtns.com/github-btn.html?user=muatik&repo=flask-profiler&type=star&count=true" frameborder="0" scrolling="0" width="90px" height="20px" style='margin-top: 15px;' class="pull-right"></iframe>
     </div>
+  </div>
   </div>
 </div>
 <div class="container">
-    <div class="col-md-10 col-md-offset-1">
+    <div class="col-xs-12 col-md-10 col-md-offset-1">
         <div class="row">
             <div class="tab-content">
 
                 <div role="tabpanel" class="tab-pane active" id="tab-dashboard">
+                    <div class="panel panel-default">
+                      <div class="panel-heading clearfix">
+                        <h3 class="panel-title pull-left">Dashboard</h3>
+
+                        <div class="btn-group day-filter pull-right" data-toggle="buttons">
+                          <label class="btn btn-default">
+                            <input type="radio" value="hours" id="hours" autocomplete="off"> 24 hours </label>
+                          <label class="btn btn-default active">
+                            <input type="radio" value="days" id="days" autocomplete="off" checked> 7 days </label>
+                          <label class="btn btn-default">
+                            <input type="radio" value="all" id="all" autocomplete="off"> 30 days </label>
+                        </div>
+                      </div>
+                      <div class="panel-body">
                     <div class="row">
                         <div class="col-md-12">
                         <div class="row">
-                            <div class="btn-group day-filter" data-toggle="buttons">
-                              <label class="btn btn-primary">
-                                <input type="radio" value="hours" id="hours" autocomplete="off"> 24 hours </label>
-                              <label class="btn btn-primary active">
-                                <input type="radio" value="days" id="days" autocomplete="off" checked> 7 days </label>
-                              <label class="btn btn-primary">
-                                <input type="radio" value="all" id="all" autocomplete="off"> 30 days </label>
-                            </div>
-                            <hr>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-3  col-md-offset-0 col-xs-6 col-xs-offset-3">
                                 <h4 class="text-center">Method distribution</h5>
                                 <canvas id="pieChart" width="200" height="200" style="width: 200px;height: 200px;"></canvas>
                             </div>
-                            <div class="col-md-9">
+                            <div class="col-md-9 col-xs-12">
                                 <h4 class="text-center">Request count by time</h5>
                                 <canvas id="lineChart" style="width: 100%;height: 200px;" height="100"></canvas>
                             </div>
@@ -57,53 +64,67 @@
                     </div>
 
                     <hr>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="big-users-table"></table>       
 
-                    <table class="table table-hover" id="big-users-table"></table>       
+                        </div>
+                    </div>
+                    </div>
                 </div>
 
-                <div role="tabpanel" class="tab-pane" id="tab-all">
-                        <table class="table table-hover" id="filteredTable">
-                            <thead>
-                                <tr class="filter-row">
-                                    <th>
-                                        <select class='method form-control'>
-                                            <option value="">All</option>
-                                            <option value="GET">GET</option>
-                                            <option value="POST">POST</option>
-                                            <option value="PUT">PUT</option>
-                                            <option value="DELETE">DELETE</option>
-                                            <option value="PATCH">PATCH</option>
-                                            <option value="COPY">COPY</option>
-                                            <option value="HEAD">HEAD</option>
-                                            <option value="OPTIONS">OPTIONS</option>
-                                            <option value="LINK">LINK</option>
-                                            <option value="UNLINK">UNLINK</option>
-                                            <option value="PURGE">PURGE</option>
-                                            <option value="LOCK">LOCK</option>
-                                            <option value="UNLOCK">UNLOCK</option>
-                                            <option value="PROPFIND">PROPFIND</option>
-                                            <option value="VIEW">VIEW</option>
-                                        </select>
-                                    </th>
-                                    <th><input type="text" class="filtered-name form-control"></th>
-                                    <th><input type="text" class="elapsed form-control"></th>
-                                    <th>
-                                        <input type="text" class="filtered-datepicker form-control">
-                                    </th>
-                                </tr>
-                                <tr>
-                                    
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                </tr>
-                            </thead>
-                        </table>   
+                <div role="tabpanel" class="tab-pane" id="tab-filtering">
+                    <div class="panel panel-default">
+                      <div class="panel-heading clearfix">
+                        <h3 class="panel-title pull-left">Filtering</h3>
+                      </div>
+                      <div class="panel-body">
+                          <div class="table-responsive">
+                            <table class="table table-hover" id="filteredTable">
+                                <thead>
+                                    <tr class="filter-row">
+                                        <th>
+                                            <select class='method form-control'>
+                                                <option value="">All</option>
+                                                <option value="GET">GET</option>
+                                                <option value="POST">POST</option>
+                                                <option value="PUT">PUT</option>
+                                                <option value="DELETE">DELETE</option>
+                                                <option value="PATCH">PATCH</option>
+                                                <option value="COPY">COPY</option>
+                                                <option value="HEAD">HEAD</option>
+                                                <option value="OPTIONS">OPTIONS</option>
+                                                <option value="LINK">LINK</option>
+                                                <option value="UNLINK">UNLINK</option>
+                                                <option value="PURGE">PURGE</option>
+                                                <option value="LOCK">LOCK</option>
+                                                <option value="UNLOCK">UNLOCK</option>
+                                                <option value="PROPFIND">PROPFIND</option>
+                                                <option value="VIEW">VIEW</option>
+                                            </select>
+                                        </th>
+                                        <th><input type="text" class="filtered-name form-control"></th>
+                                        <th><input type="text" class="elapsed form-control"></th>
+                                        <th>
+                                            <input type="text" class="filtered-datepicker form-control">
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    </tr>
+                                </thead>
+                            </table>   
+                          </div>
+                      </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <div class="modal fade filteredModal" tabindex="-1" role="dialog" aria-labelledby="filteredModal">
