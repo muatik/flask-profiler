@@ -145,10 +145,10 @@ def registerInternalRouters(app):
     def getContext(measurementId):
         return jsonify(collection.get(measurementId))
 
-    @fp.route("/api/measurements/timeserie/".format(urlPath))
-    def getReqiestsTimeserie():
+    @fp.route("/api/measurements/timeseries/".format(urlPath))
+    def getReqiestsTimeseries():
         args = dict(request.args.items())
-        return jsonify({"serie": collection.getTimeseries(args)})
+        return jsonify({"series": collection.getTimeseries(args)})
 
     @fp.route("/api/measurements/methodDistribution/".format(urlPath))
     def getMethodDistribution():
