@@ -24,7 +24,7 @@ install_requires = [
 
 setup(
     name='flask_profiler',
-    version='0.3',
+    version='0.4.16',
     url='https://github.com/muatik/flask-profiler',
     license=open('LICENSE').read(),
     author='Mustafa Atik',
@@ -35,7 +35,18 @@ setup(
     ],
     long_description=open('README.md').read(),
     packages=['flask_profiler'],
-    package_data={'flask_profiler': ['storage/*']},
+    package_data={
+        'flask_profiler': [
+            'storage/*',
+            'static/dist/fonts/*',
+            'static/dist/css/*',
+            'static/dist/js/*',
+            'static/dist/images/*',
+            'static/dist/js/*'
+            'static/dist/*',
+            'static/dist/index.html',
+            ]
+        },
     test_suite="tests.suite",
     zip_safe=False,
     platforms='any',
