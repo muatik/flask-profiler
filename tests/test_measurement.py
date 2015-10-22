@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import unittest
-from basetest import BasetTest, measure, flask_profiler
+from .basetest import BasetTest, measure, flask_profiler
 import time
 from pprint import pprint as pp
 

@@ -4,10 +4,10 @@
 def getCollection(conf):
     engine = conf.get("engine", "").lower()
     if engine == "mongodb":
-        from mongo import Mongo
+        from .mongo import Mongo
         return Mongo(conf)
     elif engine == "sqlite":
-        from sqlite import Sqlite
+        from .sqlite import Sqlite
         return Sqlite(conf)
     else:
         raise ValueError(

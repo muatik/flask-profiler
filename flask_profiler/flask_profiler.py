@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 from timeit import default_timer
+import time
 import functools
 from flask import request, jsonify, Blueprint
-import storage
+from . import storage
 from pprint import pprint as pp
 
 CONF = {}
@@ -42,10 +43,10 @@ class Measurement(object):
     def start(self):
         # we use default_timer to get the best clock available.
         # see: http://stackoverflow.com/a/25823885/672798
-        self.startedAt = default_timer()
+        self.startedAt = time.time()
 
     def stop(self):
-        self.endedAt = default_timer()
+        self.endedAt = time.time()
         self.elapsed = round(
             self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
@@ -62,7 +63,7 @@ def measure(f, name, method, context=None):
 
         try:
             returnVal = f(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             raise e
         finally:
             measurement.stop()
@@ -82,7 +83,7 @@ def wrapHttpEndpoint(f):
             "url": request.base_url,
             "args": dict(request.args.items()),
             "form": dict(request.form.items()),
-            "body": request.data,
+            "body": request.data.decode("utf-8", "strict"),
             "headers": dict(request.headers.items()),
             "func": request.endpoint}
         endpoint_name = str(request.url_rule)
@@ -97,7 +98,7 @@ def wrapAppEndpoints(app):
     each endpoints takes while being executed. This wrapping process is
     supposed not to change endpoint behaviour.
     """
-    for endpoint, func in app.view_functions.iteritems():
+    for endpoint, func in app.view_functions.items():
         app.view_functions[endpoint] = wrapHttpEndpoint(func)
 
 
@@ -164,7 +165,7 @@ def init_app(app):
 
     try:
         CONF = app.config["flask_profiler"]
-    except Exception, e:
+    except Exception as e:
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "

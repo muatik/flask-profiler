@@ -1,8 +1,10 @@
 import sqlite3
 import json
-from base import BaseStorage
+from .base import BaseStorage
 from datetime import datetime
 from timeit import default_timer
+import time
+# from time import perf_counter
 
 
 def formatDate(timestamp, dateFormat):
@@ -31,8 +33,8 @@ class Sqlite(BaseStorage):
         self.cursor = self.connection.cursor()
         try:
             self.create_database()
-        except sqlite3.OperationalError, e:
-            if "already exists" not in e.message:
+        except sqlite3.OperationalError as e:
+            if "already exists" not in str(e):
                 raise e
 
     def __enter__(self):
@@ -44,10 +46,12 @@ class Sqlite(BaseStorage):
         filters["sort"] = kwargs.get('sort', "endedAt,desc").split(",")
 
         # because inserting and filtering may take place at the same moment,
-        # a very little increment(0.5) is needed to find inserted record by sql.
-        filters["endedAt"] = float(kwargs.get('endedAt', default_timer() + 0.5))
+        # a very little increment(0.5) is needed to find inserted
+        # record by sql.
+        filters["endedAt"] = float(
+            kwargs.get('endedAt', time.time() + 0.5))
         filters["startedAt"] = float(
-            kwargs.get('startedAt', default_timer() - 3600 * 24 * 7))
+            kwargs.get('startedAt', time.time() - 3600 * 24 * 7))
 
         filters["elapsed"] = kwargs.get('elapsed', None)
         filters["method"] = kwargs.get('method', None)
@@ -261,12 +265,12 @@ class Sqlite(BaseStorage):
 
         conditions = "WHERE 1=1 and "
 
-        if filters["endedAt"]:
-            conditions = conditions + "endedAt<={} AND ".format(
-                filters["endedAt"])
         if filters["startedAt"]:
             conditions = conditions + "startedAt>={} AND ".format(
                 filters["startedAt"])
+        if filters["endedAt"]:
+            conditions = conditions + "endedAt<={} AND ".format(
+                filters["endedAt"])
         if filters["elapsed"]:
             conditions = conditions + "elapsed>={} AND".format(
                 filters["elapsed"])
@@ -288,7 +292,7 @@ class Sqlite(BaseStorage):
                 sort_field=filters["sort"][0],
                 sort_direction=filters["sort"][1]
                 )
-
+        print(sql)
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
 

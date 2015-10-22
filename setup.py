@@ -24,7 +24,7 @@ install_requires = [
 
 setup(
     name='flask_profiler',
-    version='0.4.16',
+    version='0.5',
     url='https://github.com/muatik/flask-profiler',
     license=open('LICENSE').read(),
     author='Mustafa Atik',
