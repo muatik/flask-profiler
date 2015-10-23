@@ -36,7 +36,7 @@
                 <div role="tabpanel" class="tab-pane active" id="tab-dashboard">
                     <div class="panel panel-default">
                       <div class="panel-heading clearfix">
-                        <h3 class="panel-title pull-left">Dashboard</h3>
+                        <h3 class="panel-title pull-left">Dashboard <small class="created-time"></small></h3>
 
                         <div class="btn-group day-filter pull-right" data-toggle="buttons">
                           <label class="btn btn-default">
@@ -53,11 +53,11 @@
                         <div class="row">
                             <div class="col-md-3  col-md-offset-0 col-xs-6 col-xs-offset-3">
                                 <h4 class="text-center">Method distribution</h5>
-                                <canvas id="pieChart" width="200" height="200" style="width: 200px;height: 200px;"></canvas>
+                                <div class="loading" id="pieChart"></div>
                             </div>
                             <div class="col-md-9 col-xs-12">
                                 <h4 class="text-center">Request count by time</h5>
-                                <canvas id="lineChart" style="width: 100%;height: 200px;" height="100"></canvas>
+                                <div class="loading" id="lineChart"></div>
                             </div>
                         </div>
                         </div>
@@ -76,6 +76,7 @@
                     <div class="panel panel-default">
                       <div class="panel-heading clearfix">
                         <h3 class="panel-title pull-left">Filtering</h3>
+                        <button type="button" class="btn btn-default pull-right clear-filter" style="padding: 3px 7px; margin-bottom: 0; font-size: 13px;">Clear</button>
                       </div>
                       <div class="panel-body">
                           <div class="table-responsive">
@@ -84,7 +85,7 @@
                                     <tr class="filter-row">
                                         <th>
                                             <select class='method form-control'>
-                                                <option value="">All</option>
+                                                <option value="ALL">ALL</option>
                                                 <option value="GET">GET</option>
                                                 <option value="POST">POST</option>
                                                 <option value="PUT">PUT</option>
@@ -138,6 +139,7 @@
   </div>
   
 
+<script src="static/dist/js/vendor.js"></script>
 <script src="static/dist/js/main.js"></script>
 
 </body>
