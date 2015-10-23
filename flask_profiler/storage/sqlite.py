@@ -60,6 +60,8 @@ class Sqlite(BaseStorage):
             list(kwargs.get('args', ())))  # tuple -> list -> json
         filters["kwargs"] = json.dumps(kwargs.get('kwargs', ()))
         filters["sort"] = kwargs.get('sort', "endedAt,desc").split(",")
+        filters["skip"] = int(kwargs.get('skip', 0))
+        filters["limit"] = int(kwargs.get('limit', 100))
         return filters
 
     def create_database(self):
@@ -209,9 +211,6 @@ class Sqlite(BaseStorage):
 
         conditions = conditions.rstrip(" AND")
 
-        limit = f.get('limit', 100)
-        skip = f.get('skip', 0)
-
         sql = '''SELECT * FROM "{table_name}" {conditions}
         order by {sort_field} {sort_direction}
         limit {limit} OFFSET {skip} '''.format(
@@ -219,8 +218,8 @@ class Sqlite(BaseStorage):
             conditions=conditions,
             sort_field=f["sort"][0],
             sort_direction=f["sort"][1],
-            limit=limit,
-            skip=skip
+            limit=f['limit'],
+            skip=f['skip']
         )
 
         self.cursor.execute(sql)
