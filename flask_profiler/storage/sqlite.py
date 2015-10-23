@@ -209,12 +209,18 @@ class Sqlite(BaseStorage):
 
         conditions = conditions.rstrip(" AND")
 
+        limit = f.get('limit', 100)
+        skip = f.get('skip', 0)
+
         sql = '''SELECT * FROM "{table_name}" {conditions}
-        order by {sort_field} {sort_direction}'''.format(
+        order by {sort_field} {sort_direction}
+        limit {limit} OFFSET {skip} '''.format(
             table_name=self.table_name,
             conditions=conditions,
             sort_field=f["sort"][0],
-            sort_direction=f["sort"][1]
+            sort_direction=f["sort"][1],
+            limit=limit,
+            skip=skip
         )
 
         self.cursor.execute(sql)
@@ -292,7 +298,7 @@ class Sqlite(BaseStorage):
                 sort_field=filters["sort"][0],
                 sort_direction=filters["sort"][1]
                 )
-        print(sql)
+
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
 
