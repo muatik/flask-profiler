@@ -1,6 +1,6 @@
 import time
 import pymongo
-from base import BaseStorage
+from .base import BaseStorage
 import datetime
 from bson.objectid import ObjectId
 
