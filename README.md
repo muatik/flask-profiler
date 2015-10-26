@@ -163,7 +163,7 @@ Review the [Contributing Guidelines](https://github.com/muatik/flask-profiler/wi
 ## Authors
 * [Musafa Atik](https://www.linkedin.com/in/muatik)
 * Fatih Sucu
-* Safa Yasin Yildirim
+* [Safa Yasin Yildirim](https://www.linkedin.com/in/safayasinyildirim)
 
 ## License
 MIT
