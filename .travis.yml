@@ -4,9 +4,18 @@ python:
     - "2.7"
     - "3.4"
 
+
+env:
+    - FLASK_PROFILER_TEST_CONF=sqlite
+    - FLASK_PROFILER_TEST_CONF=mongodb
+
 install:
     - pip install flask --use-mirrors
     - pip install flask-testing --use-mirrors
+    - pip install pymongo --use-mirrors
     - pip install coveralls --use-mirrors
+
+services:
+    - mongodb
 
 script: python setup.py test
