@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
-##### Flask-profiler measures endpoints defined in your flaks application; and provides you fine-grained report through a web interface.
+##### Flask-profiler measures endpoints defined in your flask application; and provides you fine-grained report through a web interface.
 
 It gives answer to these questions:
 * Where are the bottlenecks in my application?
