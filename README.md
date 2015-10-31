@@ -24,7 +24,7 @@ You can create filters to investigate certain type requests.
 
 ![Alt text](/resources/filtering_method_screen.png?raw=true "Filtering by method")
 
-You can see all the detailf of a request.
+You can see all the details of a request.
 ![Alt text](/resources/filtering_detail_screen.png?raw=true "Request detail")
 
 ## Quick Start
