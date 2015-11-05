@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
-##### Flask-profiler measures endpoints defined in your flaks application; and provides you fine-grained report through a web interface.
+##### Flask-profiler measures endpoints defined in your flask application; and provides you fine-grained report through a web interface.
 
 It gives answer to these questions:
 * Where are the bottlenecks in my application?
@@ -24,7 +24,7 @@ You can create filters to investigate certain type requests.
 
 ![Alt text](/resources/filtering_method_screen.png?raw=true "Filtering by method")
 
-You can see all the detailf of a request.
+You can see all the details of a request.
 ![Alt text](/resources/filtering_detail_screen.png?raw=true "Request detail")
 
 ## Quick Start
@@ -70,24 +70,24 @@ def listProducts():
     return "suppose I send you product list..."
 
 # In order to active flask-profiler, you have to pass flask
-# app as an argument to flask-provider.
-# All the endpoints declared so far will be tracked by flask-provider.
+# app as an argument to flask-profiler.
+# All the endpoints declared so far will be tracked by flask-profiler.
 flask_profiler.init_app(app)
 
 
 # endpoint declarations after flask_profiler.init_app() will be
-# hidden to flask_profider.
+# hidden to flask_profiler.
 @app.route('/doSomething', methods=['GET'])
 def doSomething():
-    return "flask-provider will not measure this."
+    return "flask-profiler will not measure this."
 
 
-# But in case you want an endpoint to be measured by flask-provider,
+# But in case you want an endpoint to be measured by flask-profiler,
 # you can specify this explicitly by using profile() decorator
 @app.route('/doSomething', methods=['GET'])
 @flask_profiler.profile()
 def doSomethingImportant():
-    return "flask-provider will measure this request."
+    return "flask-profiler will measure this request."
 
 if __name__ == '__main__':
     app.run(host="127.0.0.1", port=5000)

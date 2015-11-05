@@ -1,6 +1,7 @@
 import time
+import datetime
 import pymongo
-from base import BaseStorage
+from .base import BaseStorage
 import datetime
 from bson.objectid import ObjectId
 
@@ -35,13 +36,14 @@ class Mongo(BaseStorage):
 
     def filter(self, filtering={}):
         query = {}
-        limit = filtering.get('limit', 100000)
-        skip = filtering.get('skip', 0)
+        limit = int(filtering.get('limit', 100000))
+        skip = int(filtering.get('skip', 0))
         sort = filtering.get('sort', "endedAt,desc").split(",")
 
-        startedAt = float(
-            filtering.get('startedAt', time.time() - 3600 * 24 * 7))
-        endedAt = float(filtering.get('endedAt', time.time()))
+        startedAt = datetime.datetime.fromtimestamp(float(
+            filtering.get('startedAt', time.time() - 3600 * 24 * 7)))
+        endedAt = datetime.datetime.fromtimestamp(
+            float(filtering.get('endedAt', time.time())))
         elapsed = float(filtering.get('elapsed', 0))
         name = filtering.get('name', None)
         method = filtering.get('method', None)
@@ -78,8 +80,13 @@ class Mongo(BaseStorage):
                 ).sort(sort[0], sort_dir).skip(skip).limit(limit)
         return (self.clearify(record) for record in cursor)
 
-    def insert(self, recordDictionary):
-        result = self.collection.insert(recordDictionary)
+    def insert(self, measurement):
+        measurement["startedAt"] = datetime.datetime.fromtimestamp(
+            measurement["startedAt"])
+        measurement["endedAt"] = datetime.datetime.fromtimestamp(
+            measurement["endedAt"])
+
+        result = self.collection.insert(measurement)
         if result:
             return True
         return False
@@ -95,8 +102,10 @@ class Mongo(BaseStorage):
 
     def getSummary(self,  filtering={}):
         match_condition = {}
-        endedAt = filtering.get('endedAt', None)
-        startedAt = filtering.get('startedAt', None)
+        endedAt = datetime.datetime.fromtimestamp(
+            float(filtering.get('endedAt', time.time())))
+        startedAt = datetime.datetime.fromtimestamp(
+            float(filtering.get('startedAt', time.time() - 3600 * 24 * 7)))
         elapsed = filtering.get('elapsed', None)
         name = filtering.get('name', None)
         method = filtering.get('method', None)
@@ -127,9 +136,20 @@ class Mongo(BaseStorage):
                         "name": "$name"
                        },
                     "count": {"$sum": 1},
-                    "min": {"$min": "$elapsed"},
-                    "max": {"$max": "$elapsed"},
-                    "avg": {"$avg": "$elapsed"}
+                    "minElapsed": {"$min": "$elapsed"},
+                    "maxElapsed": {"$max": "$elapsed"},
+                    "avgElapsed": {"$avg": "$elapsed"}
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "method": "$_id.method",
+                    "name": "$_id.name",
+                    "count": 1,
+                    "minElapsed": 1,
+                    "maxElapsed": 1,
+                    "avgElapsed": 1
                 }
             },
             {
@@ -138,8 +158,94 @@ class Mongo(BaseStorage):
             ])
         return result
 
+    def getMethodDistribution(self, filtering=None):
+        if not filtering:
+            filtering = {}
+
+        startedAt = datetime.datetime.fromtimestamp(float(
+            filtering.get('startedAt', time.time() - 3600 * 24 * 7)))
+        endedAt = datetime.datetime.fromtimestamp(
+            float(filtering.get('endedAt', time.time())))
+
+        match_condition = {
+            "startedAt": {"$gte": startedAt},
+            "endedAt": {"$lte": endedAt}
+        }
+
+        result = self.collection.aggregate([
+            {"$match": match_condition},
+            {
+                "$group": {
+                    "_id": {
+                        "method": "$method"
+                       },
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "method": "$_id.method",
+                    "count": 1
+                }
+            }
+            ])
+
+        distribution = dict((i["method"], i["count"]) for i in result)
+        return distribution
+
+    def getTimeseries(self, filtering=None):
+        if not filtering:
+            filtering = {}
+        if filtering.get('interval', None) == "daily":
+            dateFormat = '%Y-%m-%d'
+            interval = 3600 * 24   # daily
+            groupId = {
+                "month": {"$month": "$startedAt"},
+                "day": {"$dayOfMonth": "$startedAt"},
+                "year": {"$year": "$startedAt"}}
+
+        else:
+            dateFormat = '%Y-%m-%d %H'
+            interval = 3600  # hourly
+            groupId = {
+                "hour": {"$hour": "$startedAt"},
+                "day": {"$dayOfMonth": "$startedAt"},
+                "month": {"$month": "$startedAt"},
+                "year": {"$year": "$startedAt"}}
+
+        startedAt = float(
+            filtering.get('startedAt', time.time() - 3600 * 24 * 7))
+        startedAtF = datetime.datetime.fromtimestamp(startedAt)
+        endedAt = float(filtering.get('endedAt', time.time()))
+        endedAtF = datetime.datetime.fromtimestamp(endedAt)
+
+        match_condition = {
+            "startedAt": {"$gte": startedAtF},
+            "endedAt": {"$lte": endedAtF}
+        }
+        result = self.collection.aggregate([
+            {"$match": match_condition},
+            {
+                "$group": {
+                    "_id": groupId,
+                    "startedAt": {"$first": "$startedAt"},
+                    "count": {"$sum": 1},
+                }
+            }
+            ])
+        series = {}
+        for i in range(int(startedAt), int(endedAt) + 1, interval):
+            series[datetime.datetime.fromtimestamp(i).strftime(dateFormat)] = 0
+
+        for i in result:
+            series[i["startedAt"].strftime(dateFormat)] = i["count"]
+        return series
+
     def clearify(self, obj):
         available_types = [int, dict, str, list]
+        obj["startedAt"] = obj["startedAt"].strftime("%s")
+        obj["endedAt"] = obj["endedAt"].strftime("%s")
         for k, v in obj.items():
             if any([isinstance(v, av_type) for av_type in available_types]):
                 continue
