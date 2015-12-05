@@ -1,13 +1,31 @@
 # -*- coding: utf8 -*-
-from timeit import default_timer
-import time
+
 import functools
-from flask import request, jsonify, Blueprint
-from . import storage
+import time
+
 from pprint import pprint as pp
+
+from flask import Blueprint
+from flask import jsonify
+from flask import request
+from flask.ext.httpauth import HTTPBasicAuth
+
+from . import storage
 
 CONF = {}
 collection = None
+
+myUsername = None
+myPassword = None
+
+auth = HTTPBasicAuth()
+@auth.verify_password
+def verify_password(username, password):
+    if not myUsername:
+        return True
+    if username == myUsername and password == myPassword:
+        return True
+    return False
 
 
 class Measurement(object):
@@ -85,7 +103,9 @@ def wrapHttpEndpoint(f):
             "form": dict(request.form.items()),
             "body": request.data.decode("utf-8", "strict"),
             "headers": dict(request.headers.items()),
-            "func": request.endpoint}
+            "func": request.endpoint,
+            "ip": request.remote_addr
+        }
         endpoint_name = str(request.url_rule)
         wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
@@ -127,31 +147,37 @@ def registerInternalRouters(app):
         static_folder="static/dist/", static_url_path='/static/dist')
 
     @fp.route("/".format(urlPath))
+    @auth.login_required
     def index():
         return fp.send_static_file("index.html")
 
     @fp.route("/api/measurements/".format(urlPath))
+    @auth.login_required
     def filtermeasurements():
         args = dict(request.args.items())
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/grouped/".format(urlPath))
+    @auth.login_required
     def getmeasurementsSummary():
         args = dict(request.args.items())
         measurements = collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/<measurementId>".format(urlPath))
+    @auth.login_required
     def getContext(measurementId):
         return jsonify(collection.get(measurementId))
 
     @fp.route("/api/measurements/timeseries/".format(urlPath))
+    @auth.login_required
     def getReqiestsTimeseries():
         args = dict(request.args.items())
         return jsonify({"series": collection.getTimeseries(args)})
 
     @fp.route("/api/measurements/methodDistribution/".format(urlPath))
+    @auth.login_required
     def getMethodDistribution():
         args = dict(request.args.items())
         return jsonify({
@@ -165,7 +191,7 @@ def init_app(app):
 
     try:
         CONF = app.config["flask_profiler"]
-    except Exception as e:
+    except Exception:
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "
@@ -179,4 +205,15 @@ def init_app(app):
     wrapAppEndpoints(app)
     registerInternalRouters(app)
 
-    print(" * flask-profiler is enabled.")
+    basicAuth = CONF.get("basicAuth", None)
+    if basicAuth:
+        try:
+            if basicAuth['enabled']:
+                global myUsername, myPassword
+                myUsername = basicAuth['username']
+                myPassword = basicAuth['password']
+        except Exception:
+            raise Exception(
+                "to use auth, provide required config through "
+                "flask app's config. please refer: "
+                "https://github.com/muatik/flask-profiler")
