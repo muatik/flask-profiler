@@ -15,7 +15,7 @@ app.config["flask_profiler"] = {
     },
     "basicAuth":{
         "enabled": True,
-        "username": "Admin",
+        "username": "admin",
         "password": "admin"
     }
 }
