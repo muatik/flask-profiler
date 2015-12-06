@@ -1,13 +1,32 @@
 # -*- coding: utf8 -*-
-from timeit import default_timer
-import time
+
 import functools
-from flask import request, jsonify, Blueprint
-from . import storage
+import time
+
 from pprint import pprint as pp
+
+from flask import Blueprint
+from flask import jsonify
+from flask import request
+from flask.ext.httpauth import HTTPBasicAuth
+
+from . import storage
 
 CONF = {}
 collection = None
+auth = HTTPBasicAuth()
+
+
+@auth.verify_password
+def verify_password(username, password):
+    if "basicAuth" not in CONF or not CONF["basicAuth"]["enabled"]:
+        return True
+
+    c = CONF["basicAuth"]
+    if username == c["username"] and password == c["password"]:
+        return True
+    print("flask-profiler authentication failed")
+    return False
 
 
 class Measurement(object):
@@ -85,7 +104,9 @@ def wrapHttpEndpoint(f):
             "form": dict(request.form.items()),
             "body": request.data.decode("utf-8", "strict"),
             "headers": dict(request.headers.items()),
-            "func": request.endpoint}
+            "func": request.endpoint,
+            "ip": request.remote_addr
+        }
         endpoint_name = str(request.url_rule)
         wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
@@ -97,6 +118,8 @@ def wrapAppEndpoints(app):
     wraps all endpoints defined in the given flask app to measure how long time
     each endpoints takes while being executed. This wrapping process is
     supposed not to change endpoint behaviour.
+    :param app: Flask application instance
+    :return:
     """
     for endpoint, func in app.view_functions.items():
         app.view_functions[endpoint] = wrapHttpEndpoint(func)
@@ -113,11 +136,13 @@ def profile(*args, **kwargs):
 
 def registerInternalRouters(app):
     """
-    These are the endponts which are used to display measurements in the
+    These are the endpoints which are used to display measurements in the
     flask-profiler dashboard.
 
     Note: these should be defined after wrapping user defined endpoints
     via wrapAppEndpoints()
+    :param app: Flask application instance
+    :return:
     """
     urlPath = CONF.get("endpointRoot", "flask-profiler")
 
@@ -127,31 +152,37 @@ def registerInternalRouters(app):
         static_folder="static/dist/", static_url_path='/static/dist')
 
     @fp.route("/".format(urlPath))
+    @auth.login_required
     def index():
         return fp.send_static_file("index.html")
 
     @fp.route("/api/measurements/".format(urlPath))
-    def filtermeasurements():
+    @auth.login_required
+    def filterMeasurements():
         args = dict(request.args.items())
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/grouped/".format(urlPath))
-    def getmeasurementsSummary():
+    @auth.login_required
+    def getMeasurementsSummary():
         args = dict(request.args.items())
         measurements = collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/<measurementId>".format(urlPath))
+    @auth.login_required
     def getContext(measurementId):
         return jsonify(collection.get(measurementId))
 
     @fp.route("/api/measurements/timeseries/".format(urlPath))
-    def getReqiestsTimeseries():
+    @auth.login_required
+    def getRequestsTimeseries():
         args = dict(request.args.items())
         return jsonify({"series": collection.getTimeseries(args)})
 
     @fp.route("/api/measurements/methodDistribution/".format(urlPath))
+    @auth.login_required
     def getMethodDistribution():
         args = dict(request.args.items())
         return jsonify({
@@ -165,7 +196,7 @@ def init_app(app):
 
     try:
         CONF = app.config["flask_profiler"]
-    except Exception as e:
+    except Exception:
         raise Exception(
             "to init flask-profiler, provide "
             "required config through flask app's config. please refer: "
@@ -179,4 +210,7 @@ def init_app(app):
     wrapAppEndpoints(app)
     registerInternalRouters(app)
 
-    print(" * flask-profiler is enabled.")
+    basicAuth = CONF.get("basicAuth", None)
+    if not basicAuth or not basicAuth["enabled"]:
+        print(" * CAUTION: flask-profiler is working without basic auth!")
+

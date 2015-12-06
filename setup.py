@@ -19,12 +19,13 @@ tests_require = [
 ]
 
 install_requires = [
-    'Flask'
+    'Flask',
+    'Flask-HTTPAuth'
 ]
 
 setup(
     name='flask_profiler',
-    version='0.5',
+    version='0.6',
     url='https://github.com/muatik/flask-profiler',
     license=open('LICENSE').read(),
     author='Mustafa Atik',
