@@ -25,7 +25,7 @@ def verify_password(username, password):
     c = CONF["basicAuth"]
     if username == c["username"] and password == c["password"]:
         return True
-    print "flask-profiler authentication failed"
+    print("flask-profiler authentication failed")
     return False
 
 
@@ -212,4 +212,5 @@ def init_app(app):
 
     basicAuth = CONF.get("basicAuth", None)
     if not basicAuth or not basicAuth["enabled"]:
-        print " * CAUTION: flask-profiler is working without basic auth!"
+        print(" * CAUTION: flask-profiler is working without basic auth!")
+
