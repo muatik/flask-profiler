@@ -19,7 +19,8 @@ tests_require = [
 ]
 
 install_requires = [
-    'Flask'
+    'Flask',
+    'Flask-HTTPAuth'
 ]
 
 setup(
