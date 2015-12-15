@@ -188,6 +188,11 @@ def registerInternalRouters(app):
         return jsonify({
             "distribution": collection.getMethodDistribution(args)})
 
+    @fp.after_request
+    def x_robots_tag_header(response):
+        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+        return response
+
     app.register_blueprint(fp)
 
 
