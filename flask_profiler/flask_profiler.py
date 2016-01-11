@@ -17,6 +17,9 @@ collection = None
 auth = HTTPBasicAuth()
 
 
+_is_initialized = lambda: True if CONF else False
+
+
 @auth.verify_password
 def verify_password(username, password):
     if "basicAuth" not in CONF or not CONF["basicAuth"]["enabled"]:
@@ -73,10 +76,6 @@ class Measurement(object):
 def measure(f, name, method, context=None):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        if not collection:
-            raise Exception(
-                "before measuring anything, you need to call init_app()")
-
         measurement = Measurement(name, args, kwargs, method, context)
         measurement.start()
 
@@ -129,9 +128,13 @@ def profile(*args, **kwargs):
     """
     http endpoint decorator
     """
-    def wrapper(f):
-        return wrapHttpEndpoint(f)
-    return wrapper
+    if _is_initialized():
+        def wrapper(f):
+            return wrapHttpEndpoint(f)
+        return wrapper
+    raise Exception(
+        "before measuring anything, you need to call init_app()")
+
 
 
 def registerInternalRouters(app):
