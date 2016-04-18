@@ -155,7 +155,7 @@ class Mongo(BaseStorage):
             {
                 "$sort": {sort[0]: sort_dir}
             }
-            ])
+            ])['result']
         return result
 
     def getMethodDistribution(self, filtering=None):
@@ -189,7 +189,7 @@ class Mongo(BaseStorage):
                     "count": 1
                 }
             }
-            ])
+            ])['result']
 
         distribution = dict((i["method"], i["count"]) for i in result)
         return distribution
@@ -233,7 +233,7 @@ class Mongo(BaseStorage):
                     "count": {"$sum": 1},
                 }
             }
-            ])
+            ])['result']
         series = {}
         for i in range(int(startedAt), int(endedAt) + 1, interval):
             series[datetime.datetime.fromtimestamp(i).strftime(dateFormat)] = 0
