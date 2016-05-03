@@ -127,7 +127,7 @@ class Mongo(BaseStorage):
         else:
             sort_dir = 1
 
-        result = self.collection.aggregate([
+        return self.aggregate([
             {"$match": match_condition},
             {
                 "$group": {
@@ -155,8 +155,7 @@ class Mongo(BaseStorage):
             {
                 "$sort": {sort[0]: sort_dir}
             }
-            ])['result']
-        return result
+        ])
 
     def getMethodDistribution(self, filtering=None):
         if not filtering:
@@ -172,7 +171,7 @@ class Mongo(BaseStorage):
             "endedAt": {"$lte": endedAt}
         }
 
-        result = self.collection.aggregate([
+        result = self.aggregate([
             {"$match": match_condition},
             {
                 "$group": {
@@ -189,7 +188,7 @@ class Mongo(BaseStorage):
                     "count": 1
                 }
             }
-            ])['result']
+        ])
 
         distribution = dict((i["method"], i["count"]) for i in result)
         return distribution
@@ -224,7 +223,7 @@ class Mongo(BaseStorage):
             "startedAt": {"$gte": startedAtF},
             "endedAt": {"$lte": endedAtF}
         }
-        result = self.collection.aggregate([
+        result = self.aggregate([
             {"$match": match_condition},
             {
                 "$group": {
@@ -233,7 +232,7 @@ class Mongo(BaseStorage):
                     "count": {"$sum": 1},
                 }
             }
-            ])['result']
+        ])
         series = {}
         for i in range(int(startedAt), int(endedAt) + 1, interval):
             series[datetime.datetime.fromtimestamp(i).strftime(dateFormat)] = 0
@@ -258,3 +257,15 @@ class Mongo(BaseStorage):
     def get(self, measurementId):
         record = self.collection.find_one({'_id': ObjectId(measurementId)})
         return self.clearify(record)
+
+    def aggregate(self, pipeline, **kwargs):
+        """Perform an aggregation and make sure that result will be everytime
+        CommandCursor. Will take care for pymongo version differencies
+        :param pipeline: {list} of aggregation pipeline stages
+        :return: {pymongo.command_cursor.CommandCursor}
+        """
+        result = self.connection.aggregate(pipeline, **kwargs)
+        if pymongo.version_tuple < (3, 0, 0):
+            result = result['result']
+
+        return result
