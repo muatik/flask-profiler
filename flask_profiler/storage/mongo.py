@@ -264,7 +264,7 @@ class Mongo(BaseStorage):
         :param pipeline: {list} of aggregation pipeline stages
         :return: {pymongo.command_cursor.CommandCursor}
         """
-        result = self.connection.aggregate(pipeline, **kwargs)
+        result = self.collection.aggregate(pipeline, **kwargs)
         if pymongo.version_tuple < (3, 0, 0):
             result = result['result']
 
