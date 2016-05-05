@@ -1,7 +1,24 @@
 # -*- coding: utf8 -*-
 
+import os
+import sys
 import importlib
+from contextlib import contextmanager
+
 from .base import BaseStorage
+
+
+@contextmanager
+def cwd_in_path():
+    cwd = os.getcwd()
+    if cwd in sys.path:
+        yield
+    else:
+        sys.path.insert(0, cwd)
+        try:
+            yield cwd
+        finally:
+            sys.path.remove(cwd)
 
 
 def getCollection(conf):
@@ -14,13 +31,18 @@ def getCollection(conf):
         return Sqlite(conf)
     else:
         try:
-            engine = engine.split('.')
-            if len(engine) < 1: # engine must have at least module name and class
+            parts = engine.split('.')
+            if len(parts) < 1: # engine must have at least module name and class
                 raise ImportError
 
-            module_name = '.'.join(engine[:-1])
-            klass_name = engine[-1]
-            module = importlib.import_module(module_name)
+            module_name = '.'.join(parts[:-1])
+            klass_name = parts[-1]
+
+            # we need to make sure that it will be able to find module in your
+            # project directory
+            with cwd_in_path():
+                module = importlib.import_module(module_name)
+
             storage = getattr(module, klass_name)
             if not issubclass(storage, BaseStorage):
                 raise ImportError
@@ -29,6 +51,5 @@ def getCollection(conf):
             raise ValueError(
                 ("flask-profiler requires a valid storage engine but it is"
                     " missing or wrong. provided engine: {}".format(engine)))
-
 
         return storage(conf)
