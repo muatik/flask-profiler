@@ -146,7 +146,19 @@ app.config["flask_profiler"] = {
 }
 ```
 
-Below the other options are listed.
+### Custom database engine
+Specify engine as string module and class path.
+
+```json
+app.config["flask_profiler"] = {
+    "storage": {
+        "engine": "custom.project.flask_profiler.mysql.MysqlStorage",
+        "MYSQL": "mysql://user:password@localhost/flask_profiler"
+    }
+}
+```
+
+The other options are listed below.
 
 | Filter key   |      Description      |  Default
 |----------|-------------|------
