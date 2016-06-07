@@ -81,8 +81,8 @@ def measure(f, name, method, context=None):
 
         try:
             returnVal = f(*args, **kwargs)
-        except Exception as e:
-            raise e
+        except:
+            raise
         finally:
             measurement.stop()
             if CONF.get("verbose", False):
