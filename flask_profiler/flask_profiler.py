@@ -8,7 +8,7 @@ from pprint import pprint as pp
 from flask import Blueprint
 from flask import jsonify
 from flask import request
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 
 from . import storage
 
