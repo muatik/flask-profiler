@@ -56,3 +56,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# IDE specific changes
+.idea/
+
+# Generated files
+*.sql

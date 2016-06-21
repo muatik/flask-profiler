@@ -16,7 +16,6 @@ CONF = {}
 collection = None
 auth = HTTPBasicAuth()
 
-
 _is_initialized = lambda: True if CONF else False
 
 
@@ -109,6 +108,7 @@ def wrapHttpEndpoint(f):
         endpoint_name = str(request.url_rule)
         wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
+
     return wrapper
 
 
@@ -131,10 +131,10 @@ def profile(*args, **kwargs):
     if _is_initialized():
         def wrapper(f):
             return wrapHttpEndpoint(f)
+
         return wrapper
     raise Exception(
         "before measuring anything, you need to call init_app()")
-
 
 
 def registerInternalRouters(app):
@@ -191,6 +191,21 @@ def registerInternalRouters(app):
         return jsonify({
             "distribution": collection.getMethodDistribution(args)})
 
+    @fp.route("/db/dumpDatabase")
+    @auth.login_required
+    def dumpDatabase():
+        response = jsonify({
+            "summary": collection.getSummary()})
+        response.headers["Content-Disposition"] = "attachment; filename=dump.json"
+        return response
+
+    @fp.route("/db/deleteDatabase")
+    @auth.login_required
+    def deleteDatabase():
+        response = jsonify({
+            "status": collection.truncate()})
+        return response
+
     @fp.after_request
     def x_robots_tag_header(response):
         response.headers['X-Robots-Tag'] = 'noindex, nofollow'
@@ -221,4 +236,3 @@ def init_app(app):
     basicAuth = CONF.get("basicAuth", None)
     if not basicAuth or not basicAuth["enabled"]:
         print(" * CAUTION: flask-profiler is working without basic auth!")
-

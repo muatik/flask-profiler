@@ -92,7 +92,10 @@ class Mongo(BaseStorage):
         return False
 
     def truncate(self):
-        self.collection.remove()
+        result = self.collection.remove()
+        if result:
+            return True
+        return False
 
     def delete(self, measurementId):
         result = self.collection.remove({"_id": ObjectId(measurementId)})
