@@ -240,6 +240,9 @@ class Sqlite(BaseStorage):
     def truncate(self):
         self.cursor.execute("DELETE FROM {}".format(self.table_name))
         self.connection.commit()
+        # Making the api match with mongo collection, this function must return
+        # True or False based on success of this delete operation
+        return True if self.cursor.rowcount else False
 
     def delete(self, measurementId):
         self.cursor.execute(
