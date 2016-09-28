@@ -75,6 +75,9 @@ class Measurement(object):
 def measure(f, name, method, context=None):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
+        if 'sampling_function' in CONF and not CONF['sampling_function']():
+            return f(*args, **kwargs)
+
         measurement = Measurement(name, args, kwargs, method, context)
         measurement.start()
 
