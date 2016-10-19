@@ -222,11 +222,14 @@ def init_app(app):
 
     try:
         CONF = app.config["flask_profiler"]
-    except Exception:
-        raise Exception(
-            "to init flask-profiler, provide "
-            "required config through flask app's config. please refer: "
-            "https://github.com/muatik/flask-profiler")
+    except:
+        try:
+            CONF = app.config["FLASK_PROFILER"]
+        except:
+            raise Exception(
+                "to init flask-profiler, provide "
+                "required config through flask app's config. please refer: "
+                "https://github.com/muatik/flask-profiler")
 
     if not CONF.get("enabled", False):
         return
