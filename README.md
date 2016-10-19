@@ -167,6 +167,27 @@ The other options are listed below.
 | storage.DATABASE | database name | flask_profiler
 | storage.COLLECTION | collection name | measurements
 
+### Sampling
+Control the number of samples taken by flask-profiler
+
+You would want control over how many times should the flask profiler take samples while running in production mode. 
+You can supply a function and control the sampling according to your business logic.
+
+Example 1: Sample 1 in 100 times with random numbers
+```json
+app.config["flask_profiler"] = {
+    "sampling_function": True if random.sample(list(range(1, 101)), 1) == [42] else False
+}
+```
+
+Example 2: Sample for specific users
+```json
+app.config["flask_profiler"] = {
+    "sampling_function": True if user is 'divyendu' else False
+}
+```
+
+If sampling function is not present, all requests will be sampled.
 
 ## Contributing
 
