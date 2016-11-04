@@ -170,7 +170,7 @@ The other options are listed below.
 ### Sampling
 Control the number of samples taken by flask-profiler
 
-You would want control over how many times should the flask profiler take samples while running in production mode. 
+You would want control over how many times should the flask profiler take samples while running in production mode.
 You can supply a function and control the sampling according to your business logic.
 
 Example 1: Sample 1 in 100 times with random numbers
@@ -188,6 +188,16 @@ app.config["flask_profiler"] = {
 ```
 
 If sampling function is not present, all requests will be sampled.
+
+### Changing flask-profiler endpoint root
+By default we can access flask-profiler at <your-app>/flask-profiler
+
+```python
+app.config["flask_profiler"] = {
+        "endpointRoot": "secret-flask-profiler"
+}
+```
+
 
 ## Contributing
 
