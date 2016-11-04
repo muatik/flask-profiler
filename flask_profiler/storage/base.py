@@ -16,3 +16,6 @@ class BaseStorage(object):
 
     def delete(self, measurementId):
         raise Exception("Not imlemented Error")
+
+    def truncate(self):
+        raise Exception("Not imlemented Error")
