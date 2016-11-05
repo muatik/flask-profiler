@@ -6,13 +6,16 @@ class BaseStorage(object):
         super(BaseStorage, self).__init__()
 
     def filter(self, criteria):
-        raise Exception("Not implemneted Error")
+        raise Exception("Not implemented Error")
 
     def getSummary(self, criteria):
-        raise Exception("Not implemneted Error")
+        raise Exception("Not implemented Error")
 
     def insert(self, measurement):
         raise Exception("Not implemented Error")
 
     def delete(self, measurementId):
-        raise Exception("Not imlemented Error")
+        raise Exception("Not implemented Error")
+
+    def truncate(self):
+        raise Exception("Not implemented Error")
