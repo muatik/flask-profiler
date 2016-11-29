@@ -75,6 +75,12 @@ class Measurement(object):
 def measure(f, name, method, context=None):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
+        if 'sampling_function' in CONF and not callable(CONF['sampling_function']):
+            raise Exception(
+                "if sampling_function is provided to flask-profiler via config, "
+                "it must be callable, refer to: "
+                "https://github.com/muatik/flask-profiler#sampling")
+
         if 'sampling_function' in CONF and not CONF['sampling_function']():
             return f(*args, **kwargs)
 
