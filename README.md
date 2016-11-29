@@ -176,14 +176,14 @@ You can supply a function and control the sampling according to your business lo
 Example 1: Sample 1 in 100 times with random numbers
 ```python
 app.config["flask_profiler"] = {
-    "sampling_function": True if random.sample(list(range(1, 101)), 1) == [42] else False
+    "sampling_function": lambda: True if random.sample(list(range(1, 101)), 1) == [42] else False
 }
 ```
 
 Example 2: Sample for specific users
 ```python
 app.config["flask_profiler"] = {
-    "sampling_function": True if user is 'divyendu' else False
+    "sampling_function": lambda: True if user is 'divyendu' else False
 }
 ```
 
