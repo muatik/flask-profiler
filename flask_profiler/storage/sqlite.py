@@ -114,7 +114,7 @@ class Sqlite(BaseStorage):
         method = kwds.get('method', None)
         name = kwds.get('name', None)
 
-        sql = """INSERT INTO {} VALUES (
+        sql = """INSERT INTO {0} VALUES (
             null, ?, ?, ?, ?,?, ?, ?, ?)""".format(self.table_name)
 
         self.cursor.execute(sql, (
@@ -141,7 +141,7 @@ class Sqlite(BaseStorage):
 
         endedAt, startedAt = filters["endedAt"], filters["startedAt"]
 
-        conditions = "where endedAt<={} AND startedAt>={} ".format(
+        conditions = "where endedAt<={0} AND startedAt>={1} ".format(
             endedAt, startedAt)
 
         sql = '''SELECT
@@ -171,7 +171,7 @@ class Sqlite(BaseStorage):
             kwds = {}
         f = Sqlite.getFilters(kwds)
         endedAt, startedAt = f["endedAt"], f["startedAt"]
-        conditions = "where endedAt<={} AND startedAt>={} ".format(
+        conditions = "where endedAt<={0} AND startedAt>={1} ".format(
             endedAt, startedAt)
 
         sql = '''SELECT
@@ -198,16 +198,16 @@ class Sqlite(BaseStorage):
         conditions = "WHERE 1=1 AND "
 
         if f["endedAt"]:
-            conditions = conditions + 'endedAt<={} AND '.format(f["endedAt"])
+            conditions = conditions + 'endedAt<={0} AND '.format(f["endedAt"])
         if f["startedAt"]:
-            conditions = conditions + 'startedAt>={} AND '.format(
+            conditions = conditions + 'startedAt>={0} AND '.format(
                 f["startedAt"])
         if f["elapsed"]:
-            conditions = conditions + 'elapsed>={} AND '.format(f["elapsed"])
+            conditions = conditions + 'elapsed>={0} AND '.format(f["elapsed"])
         if f["method"]:
-            conditions = conditions + 'method="{}" AND '.format(f["method"])
+            conditions = conditions + 'method="{0}" AND '.format(f["method"])
         if f["name"]:
-            conditions = conditions + 'name="{}" AND '.format(f["name"])
+            conditions = conditions + 'name="{0}" AND '.format(f["name"])
 
         conditions = conditions.rstrip(" AND")
 
@@ -238,7 +238,7 @@ class Sqlite(BaseStorage):
         return self.jsonify_row(record)
 
     def truncate(self):
-        self.cursor.execute("DELETE FROM {}".format(self.table_name))
+        self.cursor.execute("DELETE FROM {0}".format(self.table_name))
         self.connection.commit()
         # Making the api match with mongo collection, this function must return
         # True or False based on success of this delete operation
@@ -274,13 +274,13 @@ class Sqlite(BaseStorage):
         conditions = "WHERE 1=1 and "
 
         if filters["startedAt"]:
-            conditions = conditions + "startedAt>={} AND ".format(
+            conditions = conditions + "startedAt>={0} AND ".format(
                 filters["startedAt"])
         if filters["endedAt"]:
-            conditions = conditions + "endedAt<={} AND ".format(
+            conditions = conditions + "endedAt<={0} AND ".format(
                 filters["endedAt"])
         if filters["elapsed"]:
-            conditions = conditions + "elapsed>={} AND".format(
+            conditions = conditions + "elapsed>={0} AND".format(
                 filters["elapsed"])
 
         conditions = conditions.rstrip(" AND")
