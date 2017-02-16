@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import functools
+import re
 import time
 
 from pprint import pprint as pp
@@ -72,7 +73,19 @@ class Measurement(object):
             self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
+def is_ignored(name, conf):
+    ignore_patterns = conf.get("ignore", [])
+    for pattern in ignore_patterns:
+        if re.search(pattern, name):
+            return True
+    return False
+
+
 def measure(f, name, method, context=None):
+
+    if is_ignored(name, CONF):
+        return f
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         if 'sampling_function' in CONF and not callable(CONF['sampling_function']):
