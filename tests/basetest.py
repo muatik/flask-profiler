@@ -18,7 +18,10 @@ _CONFS = {
             "DATABASE": "flask_profiler_test",
             "COLLECTION": "profiler",
             "MONGO_URL": "mongodb://localhost"
-        }
+        },
+        "ignore": [
+            "^/static/.*"
+        ]
     },
     "sqlite": {
         "enabled": True,
