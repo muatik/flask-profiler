@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
 
 import functools
+import re
 import time
 
 from pprint import pprint as pp
+
+import logging
 
 from flask import Blueprint
 from flask import jsonify
@@ -16,6 +19,8 @@ CONF = {}
 collection = None
 auth = HTTPBasicAuth()
 
+logger = logging.getLogger("flask-profiler")
+
 _is_initialized = lambda: True if CONF else False
 
 
@@ -27,7 +32,7 @@ def verify_password(username, password):
     c = CONF["basicAuth"]
     if username == c["username"] and password == c["password"]:
         return True
-    print("flask-profiler authentication failed")
+    logging.warn("flask-profiler authentication failed")
     return False
 
 
@@ -72,7 +77,20 @@ class Measurement(object):
             self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
+def is_ignored(name, conf):
+    ignore_patterns = conf.get("ignore", [])
+    for pattern in ignore_patterns:
+        if re.search(pattern, name):
+            return True
+    return False
+
+
 def measure(f, name, method, context=None):
+    logger.debug("{} is being processed.".format(name))
+    if is_ignored(name, CONF):
+        logger.debug("{} is ignored.".format(name))
+        return f
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         if 'sampling_function' in CONF and not callable(CONF['sampling_function']):
@@ -247,4 +265,4 @@ def init_app(app):
 
     basicAuth = CONF.get("basicAuth", None)
     if not basicAuth or not basicAuth["enabled"]:
-        print(" * CAUTION: flask-profiler is working without basic auth!")
+        logging.warn(" * CAUTION: flask-profiler is working without basic auth!")

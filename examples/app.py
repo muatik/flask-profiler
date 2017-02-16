@@ -17,7 +17,11 @@ app.config["flask_profiler"] = {
         "enabled": True,
         "username": "admin",
         "password": "admin"
-    }
+    },
+    "ignore": [
+        "/static/*",
+        "/secrets/password/"
+    ]
 }
 
 
@@ -34,6 +38,12 @@ def updateProduct(id):
 @app.route('/products', methods=['GET'])
 def listProducts():
     return "suppose I send you product list..."
+
+
+@app.route('/static/photo/', methods=['GET'])
+def getPhoto():
+    return "your photo"
+
 
 # In order to active flask-profiler, you have to pass flask
 # app as an argument to flask-provider.

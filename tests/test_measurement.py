@@ -1,8 +1,8 @@
 # -*- coding: utf8 -*-
-import unittest
-from .basetest import BasetTest, measure, flask_profiler
 import time
-from pprint import pprint as pp
+import unittest
+
+from .basetest import BasetTest, measure, flask_profiler
 
 
 def doWait(seconds, **kwargs):
@@ -27,7 +27,7 @@ class MeasurementTest(BasetTest):
         result = wrapped(waitSeconds)
         m = list(flask_profiler.collection.filter())[0]
         self.assertEqual(m["name"], "doWait")
-        self.assertTrue(float(m["elapsed"]) >= waitSeconds)
+        self.assertEqual(float(m["elapsed"]) >= waitSeconds, True)
 
     def test_03_measurement_params(self):
         context = {"token": "x"}
