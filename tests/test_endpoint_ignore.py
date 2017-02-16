@@ -3,7 +3,7 @@ import unittest
 
 from flask_testing import TestCase as FlaskTestCase
 
-from flask.ext.profiler.flask_profiler import is_ignored
+from flask_profiler.flask_profiler import is_ignored
 from .basetest import BasetTest, flask_profiler
 
 

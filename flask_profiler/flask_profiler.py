@@ -6,6 +6,8 @@ import time
 
 from pprint import pprint as pp
 
+import logging
+
 from flask import Blueprint
 from flask import jsonify
 from flask import request
@@ -16,6 +18,8 @@ from . import storage
 CONF = {}
 collection = None
 auth = HTTPBasicAuth()
+
+logger = logging.getLogger("flask-profiler")
 
 _is_initialized = lambda: True if CONF else False
 
@@ -28,7 +32,7 @@ def verify_password(username, password):
     c = CONF["basicAuth"]
     if username == c["username"] and password == c["password"]:
         return True
-    print("flask-profiler authentication failed")
+    logging.warn("flask-profiler authentication failed")
     return False
 
 
@@ -82,8 +86,9 @@ def is_ignored(name, conf):
 
 
 def measure(f, name, method, context=None):
-
+    logger.debug("{} is being processed.".format(name))
     if is_ignored(name, CONF):
+        logger.debug("{} is ignored.".format(name))
         return f
 
     @functools.wraps(f)
@@ -260,4 +265,4 @@ def init_app(app):
 
     basicAuth = CONF.get("basicAuth", None)
     if not basicAuth or not basicAuth["enabled"]:
-        print(" * CAUTION: flask-profiler is working without basic auth!")
+        logging.warn(" * CAUTION: flask-profiler is working without basic auth!")

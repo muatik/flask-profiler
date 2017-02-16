@@ -1,10 +1,9 @@
 # -*- coding: utf8 -*-
 import unittest
 
-from flask import Flask
 from flask_testing import TestCase as FlaskTestCase
 
-from .basetest import BasetTest, flask_profiler, CONF
+from .basetest import BasetTest, flask_profiler
 
 
 class EndpointMeasurementTest(BasetTest, FlaskTestCase):
