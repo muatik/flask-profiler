@@ -1,11 +1,11 @@
 # Flask-profiler
 
 
-**version: 1.3** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
+**version: 1.4** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
 ##### Flask-profiler measures endpoints defined in your flask application; and provides you fine-grained report through a web interface.
 
-It gives answer to these questions:
+It gives answers to these questions:
 * Where are the bottlenecks in my application?
 * Which endpoints are the slowest in my application?
 * Which are the most frequently called endpoints?
@@ -57,7 +57,10 @@ app.config["flask_profiler"] = {
         "enabled": True,
         "username": "admin",
         "password": "admin"
-    }
+    },
+    "ignore": [
+	    "^/static/.*"
+	]
 }
 
 
@@ -74,6 +77,10 @@ def updateProduct(id):
 @app.route('/products', methods=['GET'])
 def listProducts():
     return "suppose I send you product list..."
+
+@app.route('/static/something/', methods=['GET'])
+def listProducts():
+    return "this should not be tracked..."
 
 # In order to active flask-profiler, you have to pass flask
 # app as an argument to flask-profiler.
@@ -113,13 +120,13 @@ curl http://127.0.0.1:5000/product/123
 curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
 ```
 
-If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as json http://127.0.0.1:5000/flask-profiler/api/measurements?sort=elapsed,desc
+If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as JSON http://127.0.0.1:5000/flask-profiler/api/measurements?sort=elapsed,desc
 
 ## Using with different database system
-Currently **Sqlite** and **Mongodb** database systems are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
+Currently, **SQLite** and **MongoDB** database systems are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
 
-### Sqlite
-In order to use Sqlite, just specify it as the value of `storage.engine` directive as follows.
+### SQLite
+In order to use SQLite, just specify it as the value of `storage.engine` directive as follows.
 
 ```json
 app.config["flask_profiler"] = {
@@ -133,11 +140,11 @@ Below the other options are listed.
 
 | Filter key   |      Description      |  Default |
 |----------|-------------|------|
-| storage.FILE | sqlite database file name | flask_profiler.sql|
+| storage.FILE | SQLite database file name | flask_profiler.sql|
 | storage.TABLE | table name in which profiling data will reside | measurements |
 
-### Mongodb
-In order to use Mongodb, just specify it as the value of `storage.engine` directive as follows.
+### MongoDB
+In order to use MongoDB, just specify it as the value of `storage.engine` directive as follows.
 
 ```json
 app.config["flask_profiler"] = {
@@ -190,11 +197,23 @@ app.config["flask_profiler"] = {
 If sampling function is not present, all requests will be sampled.
 
 ### Changing flask-profiler endpoint root
-By default we can access flask-profiler at <your-app>/flask-profiler
+By default, we can access flask-profiler at <your-app>/flask-profiler
 
 ```python
 app.config["flask_profiler"] = {
         "endpointRoot": "secret-flask-profiler"
+}
+```
+
+### Ignored endpoints
+Flask-profiler will try to track every endpoint defined so far when init_app() is invoked. If you want to exclude some of the endpoints, you can define matching regex for them as follows:
+
+```python
+app.config["flask_profiler"] = {
+        "ignore": [
+	        "^/static/.*",
+	        "/api/users/\w+/password"
+        ]
 }
 ```
 

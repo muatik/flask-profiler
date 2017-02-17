@@ -86,9 +86,9 @@ def is_ignored(name, conf):
 
 
 def measure(f, name, method, context=None):
-    logger.debug("{} is being processed.".format(name))
+    logger.debug("{0} is being processed.".format(name))
     if is_ignored(name, CONF):
-        logger.debug("{} is ignored.".format(name))
+        logger.debug("{0} is ignored.".format(name))
         return f
 
     @functools.wraps(f)
