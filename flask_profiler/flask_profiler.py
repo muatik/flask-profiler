@@ -193,7 +193,7 @@ def registerInternalRouters(app):
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/api/measurements/grouped/".format(urlPath))
+    @fp.route("/api/measurements/grouped".format(urlPath))
     @auth.login_required
     def getMeasurementsSummary():
         args = dict(request.args.items())
