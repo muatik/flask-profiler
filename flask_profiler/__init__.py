@@ -2,4 +2,5 @@
 from .flask_profiler import (
     measure,
     profile,
-    init_app)
+    init_app,
+    Profiler)
