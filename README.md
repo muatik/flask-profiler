@@ -122,6 +122,45 @@ curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
 
 If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as JSON http://127.0.0.1:5000/flask-profiler/api/measurements?sort=elapsed,desc
 
+If you like to initialize your extensions in other files or use factory apps pattern, you can also create a instance of the `Profiler` class, this will register all your endpoints once you app run by first time. E.g:
+
+```python
+from flask import Flask
+from flask_profiler import Profiler
+
+profiler = Profiler()
+
+app = Flask(__name__)
+
+app.config["DEBUG"] = True
+
+# You need to declare necessary configuration to initialize
+# flask-profiler as follows:
+app.config["flask_profiler"] = {
+    "enabled": app.config["DEBUG"],
+    "storage": {
+        "engine": "sqlite"
+    },
+    "basicAuth":{
+        "enabled": True,
+        "username": "admin",
+        "password": "admin"
+    },
+    "ignore": [
+        "^/static/.*"
+    ]
+}
+
+profiler = Profiler()  # You can have this in another module
+profiler.init_app(app)
+# Or just Profiler(app)
+
+@app.route('/product/<id>', methods=['GET'])
+def getProduct(id):
+    return "product id is " + str(id)
+
+```
+
 ## Using with different database system
 Currently, **SQLite** and **MongoDB** database systems are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
 

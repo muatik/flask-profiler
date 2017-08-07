@@ -91,3 +91,31 @@ class BasetTest(unittest.TestCase):
             return "with profiler"
 
         return app
+
+
+class BaseTest2(unittest.TestCase):
+
+    def setUp(cls):
+        flask_profiler.collection.truncate()
+
+    @classmethod
+    def setUpClass(cls):
+
+        flask_profiler.collection = storage.getCollection(CONF["storage"])
+
+    def create_app(self):
+        app = Flask(__name__)
+        app.config["flask_profiler"] = CONF
+        app.config['TESTING'] = True
+        profiler = flask_profiler.Profiler()
+        profiler.init_app(app)
+
+        @app.route("/api/people/<firstname>")
+        def sayHello(firstname):
+            return firstname
+
+        @app.route("/api/with/profiler/<message>")
+        def customProfilerEP(message):
+            return "with profiler"
+
+        return app
