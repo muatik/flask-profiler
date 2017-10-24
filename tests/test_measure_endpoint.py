@@ -56,7 +56,7 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         self.client.get("/api/people/foo")
         self.client.get("/api/people/foo")
         self.client.get("/api/with/profiler/hello?q=2")
-        measurements = list(flask_profiler.collection.filter({"sort": "id,desc"}))
+        measurements = list(flask_profiler.collection.filter())
         self.assertEqual(len(measurements), 3)
         m = measurements[0]
         self.assertEqual(m["name"], "/api/with/profiler/<message>")

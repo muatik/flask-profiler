@@ -5,7 +5,7 @@ from datetime import datetime
 from timeit import default_timer
 import time
 from sqlalchemy import create_engine
-from sqlalchemy import Column, String, Integer, REAL
+from sqlalchemy import Column, String, Integer, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
@@ -21,9 +21,9 @@ class Measurements(base):
     __tablename__ = 'flask_profiler_measurements'
 
     id = Column(Integer, primary_key=True)
-    startedAt = Column(REAL)
-    endedAt = Column(REAL)
-    elapsed = Column(REAL)
+    startedAt = Column(Numeric)
+    endedAt = Column(Numeric)
+    elapsed = Column(Numeric)
     method = Column(String)
     args = Column(String)
     kwargs = Column(String)

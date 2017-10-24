@@ -8,6 +8,7 @@ python:
 env:
     - FLASK_PROFILER_TEST_CONF=sqlite
     - FLASK_PROFILER_TEST_CONF=mongodb
+    - FLASK_PROFILER_TEST_CONF=sqlalchemy
 
 install:
     - pip install flask
