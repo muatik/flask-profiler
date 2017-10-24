@@ -31,9 +31,19 @@ _CONFS = {
         "ignore": [
             "^/static/.*"
         ]
+    },
+    "sqlalchemy": {
+        "enabled": True,
+        "storage": {
+            "engine": "sqlalchemy",
+            "db_url": "sqlite:///flask_profiler.sql"
+        },
+        "ignore": [
+            "^/static/.*"
+        ]
     }
 }
-CONF = _CONFS[environ.get('FLASK_PROFILER_TEST_CONF', 'sqlite')]
+CONF = _CONFS[environ.get('FLASK_PROFILER_TEST_CONF', 'sqlalchemy')]
 
 
 class BasetTest(unittest.TestCase):

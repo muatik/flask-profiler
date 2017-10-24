@@ -193,6 +193,19 @@ app.config["flask_profiler"] = {
 }
 ```
 
+### SQLAchemy
+In order to use SQLAchemy, just specify it as the value of `storage.engine` directive as follows.
+Also first create an empty database with the name "flask_profiler".
+
+```json
+app.config["flask_profiler"] = {
+    "storage": {
+        "engine": "sqlalchemy",
+        "db_url": "postgresql://user:pass@localhost:5432/flask_profiler"  # optional, if no db_url specified then sqlite will be used.
+    }
+}
+```
+
 ### Custom database engine
 Specify engine as string module and class path.
 
