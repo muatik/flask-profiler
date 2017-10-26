@@ -1,7 +1,7 @@
 # Flask-profiler
 
 
-**version: 1.5** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
+**version: 1.6** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
 ##### Flask-profiler measures endpoints defined in your flask application; and provides you fine-grained report through a web interface.
 
@@ -197,7 +197,7 @@ app.config["flask_profiler"] = {
 In order to use SQLAchemy, just specify it as the value of `storage.engine` directive as follows.
 Also first create an empty database with the name "flask_profiler".
 
-```json
+```python
 app.config["flask_profiler"] = {
     "storage": {
         "engine": "sqlalchemy",
