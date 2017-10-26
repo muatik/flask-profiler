@@ -71,7 +71,7 @@ class Sqlachemy(BaseStorage):
         name = kwds.get('name', None)
 
         session = sessionmaker(self.db)()
-        doctor_strange = Measurements(
+        session.add(Measurements(
             endedAt=endedAt,
             startedAt=startedAt,
             elapsed=elapsed,
@@ -80,8 +80,7 @@ class Sqlachemy(BaseStorage):
             context=context,
             method=method,
             name=name,
-        )
-        session.add(doctor_strange)
+        ))
         session.commit()
 
     @staticmethod
