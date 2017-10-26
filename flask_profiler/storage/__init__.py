@@ -29,6 +29,9 @@ def getCollection(conf):
     elif engine.lower() == "sqlite":
         from .sqlite import Sqlite
         return Sqlite(conf)
+    elif engine.lower() == "sqlalchemy":
+        from .sql_alchemy import Sqlachemy
+        return Sqlachemy(conf)
     else:
         try:
             parts = engine.split('.')
