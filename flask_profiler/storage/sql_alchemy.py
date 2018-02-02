@@ -4,7 +4,7 @@ from .base import BaseStorage
 from datetime import datetime
 from timeit import default_timer
 import time
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Text
 from sqlalchemy import Column, String, Integer, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -24,11 +24,11 @@ class Measurements(base):
     startedAt = Column(Numeric)
     endedAt = Column(Numeric)
     elapsed = Column(Numeric)
-    method = Column(String)
-    args = Column(String)
-    kwargs = Column(String)
-    name = Column(String)
-    context = Column(String)
+    method = Column(Text)
+    args = Column(Text)
+    kwargs = Column(Text)
+    name = Column(Text)
+    context = Column(Text)
 
     def __repr__(self):
         return "<Measurements {}, {}, {}, {}, {}, {}, {}, {}, {}>".format(
