@@ -24,11 +24,11 @@ class Measurements(base):
     startedAt = Column(Numeric)
     endedAt = Column(Numeric)
     elapsed = Column(Numeric)
-    method = Column(String)
-    args = Column(String)
-    kwargs = Column(String)
-    name = Column(String)
-    context = Column(String)
+    method = Column(String(512))
+    args = Column(String(512))
+    kwargs = Column(String(512))
+    name = Column(String(512))
+    context = Column(String(512))
 
     def __repr__(self):
         return "<Measurements {}, {}, {}, {}, {}, {}, {}, {}, {}>".format(
