@@ -20,7 +20,7 @@ tests_require = [
 
 install_requires = [
     'Flask',
-    'Flask-HTTPAuth'
+    'Flask-HTTPAuth',
     'simplejson'
 ]
 
