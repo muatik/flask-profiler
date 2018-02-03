@@ -1,3 +1,9 @@
+version 1.7
+====================
+- sqlalchemy support with mysql as database compatible with all the functions
+ of mongodb and sqlite
+
+
 version 1.6
 ====================
 - sqlalchemy support
