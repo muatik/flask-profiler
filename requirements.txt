@@ -8,3 +8,4 @@ MarkupSafe==1.0
 Werkzeug==0.12.2
 sqlalchemy==1.1.14
 simplejson==3.13.2
+MySQL-python==1.2.5
