@@ -15,13 +15,15 @@ from setuptools import setup
 
 
 tests_require = [
-    "Flask-Testing"
+    "Flask-Testing",
+    "MySQL-python"
 ]
 
 install_requires = [
     'Flask',
     'Flask-HTTPAuth',
-    'simplejson'
+    'simplejson',
+    'MySQL-python'
 ]
 
 setup(
