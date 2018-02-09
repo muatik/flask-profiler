@@ -36,7 +36,7 @@ _CONFS = {
         "enabled": True,
         "storage": {
             "engine": "sqlalchemy",
-            "db_url": "sqlite:///flask_profiler.sql"
+            "db_url": "mysql://root:@localhost/flask_profiler"
         },
         "ignore": [
             "^/static/.*"
