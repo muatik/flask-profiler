@@ -19,5 +19,9 @@ install:
 
 services:
     - mongodb
+    - mysql
+
+before_install:
+  - mysql -e 'CREATE DATABASE flask_profiler;'
 
 script: python setup.py test
