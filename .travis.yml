@@ -16,6 +16,7 @@ install:
     - pip install pymongo
     - pip install coveralls
     - pip install sqlalchemy
+    - pip install simplejson
 
 services:
     - mongodb
