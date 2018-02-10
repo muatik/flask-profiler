@@ -30,8 +30,8 @@ def getCollection(conf):
         from .sqlite import Sqlite
         return Sqlite(conf)
     elif engine.lower() == "sqlalchemy":
-        from .sql_alchemy import Sqlachemy
-        return Sqlachemy(conf)
+        from .sql_alchemy import Sqlalchemy
+        return Sqlalchemy(conf)
     else:
         try:
             parts = engine.split('.')

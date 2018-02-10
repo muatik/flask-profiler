@@ -1,18 +1,12 @@
-import sqlite3
 import json
 from decimal import Decimal, ROUND_UP
-
-from sqlalchemy.engine.url import make_url
 from .base import BaseStorage
 from datetime import datetime
-from timeit import default_timer
 import time
 from sqlalchemy import create_engine, Text
-from sqlalchemy import Column, String, Integer, Numeric
+from sqlalchemy import Column, Integer, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import func
-import MySQLdb
 
 base = declarative_base()
 
@@ -48,25 +42,15 @@ class Measurements(base):
         )
 
 
-class Sqlachemy(BaseStorage):
-    """docstring for Sqlite"""
+class Sqlalchemy(BaseStorage):
+
     def __init__(self, config=None):
-        super(Sqlachemy, self).__init__()
+        super(Sqlalchemy, self).__init__()
         self.config = config
-
-        self.db = create_engine(self.config.get("db_url", "sqlite:///flask_profiler.sql"))
-
+        self.db = create_engine(
+            self.config.get("db_url")
+        )
         self.create_database()
-        if self.config.get("db_url"):
-            if self.config.get("db_url").startswith("mysql"):
-                url = make_url(self.config.get("db_url"))
-                self.connection = MySQLdb.connect(
-                    host=url.host,
-                    user=url.username,
-                    passwd=url.password,
-                    db=url.database
-                )
-                self.cursor = self.connection.cursor()
 
     def __enter__(self):
         return self
@@ -125,7 +109,7 @@ class Sqlachemy(BaseStorage):
 
     def filter(self, kwds={}):
         # Find Operation
-        f = Sqlachemy.getFilters(kwds)
+        f = Sqlalchemy.getFilters(kwds)
 
         conditions = "WHERE 1=1 AND "
 
@@ -152,10 +136,9 @@ class Sqlachemy(BaseStorage):
             limit=f['limit'],
             skip=f['skip']
         )
-        self.connection.begin()
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
-        return (Sqlachemy.jsonify_row(row) for row in rows)
+        session = sessionmaker(self.db)()
+        rows = session.execute(sql)
+        return (Sqlalchemy.jsonify_row(row) for row in rows)
 
     @staticmethod
     def jsonify_row(row):
@@ -193,7 +176,7 @@ class Sqlachemy(BaseStorage):
             return False
 
     def getSummary(self, kwds={}):
-        filters = Sqlachemy.getFilters(kwds)
+        filters = Sqlalchemy.getFilters(kwds)
 
         conditions = "WHERE 1=1 and "
 
@@ -223,10 +206,8 @@ class Sqlachemy(BaseStorage):
                 sort_field=filters["sort"][0],
                 sort_direction=filters["sort"][1]
                 )
-
-        self.connection.begin()
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+        session = sessionmaker(self.db)()
+        rows = session.execute(sql)
 
         result = []
         for r in rows:
@@ -241,7 +222,7 @@ class Sqlachemy(BaseStorage):
         return result
 
     def getTimeseries(self, kwds={}):
-        filters = Sqlachemy.getFilters(kwds)
+        filters = Sqlalchemy.getFilters(kwds)
 
         if kwds.get('interval', None) == "daily":
             interval = 3600 * 24   # daily
@@ -264,10 +245,8 @@ class Sqlachemy(BaseStorage):
                 dateFormat=dateFormat,
                 conditions=conditions
                 )
-
-        self.connection.begin()
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+        session = sessionmaker(self.db)()
+        rows = session.execute(sql)
 
         series = {}
         for i in range(int(startedAt), int(endedAt) + 1, interval):
@@ -280,7 +259,7 @@ class Sqlachemy(BaseStorage):
     def getMethodDistribution(self, kwds=None):
         if not kwds:
             kwds = {}
-        f = Sqlachemy.getFilters(kwds)
+        f = Sqlalchemy.getFilters(kwds)
         endedAt, startedAt = f["endedAt"], f["startedAt"]
         conditions = "where endedAt<={0} AND startedAt>={1} ".format(
             endedAt, startedAt)
@@ -292,10 +271,9 @@ class Sqlachemy(BaseStorage):
             '''.format(
                 conditions=conditions
                 )
+        session = sessionmaker(self.db)()
+        rows = session.execute(sql)
 
-        self.connection.begin()
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
 
         results = {}
         for row in rows:

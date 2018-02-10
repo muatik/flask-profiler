@@ -16,13 +16,8 @@ install:
     - pip install pymongo
     - pip install coveralls
     - pip install sqlalchemy
-    - pip install configparser
 
 services:
     - mongodb
-    - mysql
-
-before_install:
-  - mysql -e 'CREATE DATABASE flask_profiler;'
 
 script: python setup.py test

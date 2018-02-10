@@ -15,20 +15,18 @@ from setuptools import setup
 
 
 tests_require = [
-    "Flask-Testing",
-    "MySQL-python"
+    "Flask-Testing"
 ]
 
 install_requires = [
     'Flask',
     'Flask-HTTPAuth',
-    'simplejson',
-    'MySQL-python'
+    'simplejson'
 ]
 
 setup(
     name='flask_profiler',
-    version='1.7',
+    version='1.6',
     url='https://github.com/muatik/flask-profiler',
     license=open('LICENSE').read(),
     author='Mustafa Atik',
