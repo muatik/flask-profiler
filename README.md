@@ -97,7 +97,7 @@ def doSomething():
 
 # But in case you want an endpoint to be measured by flask-profiler,
 # you can specify this explicitly by using profile() decorator
-@app.route('/doSomething', methods=['GET'])
+@app.route('/doSomethingImportant', methods=['GET'])
 @flask_profiler.profile()
 def doSomethingImportant():
     return "flask-profiler will measure this request."
