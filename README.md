@@ -162,7 +162,7 @@ def getProduct(id):
 ```
 
 ## Using with different database system
-Currently, **SQLite** and **MongoDB** database systems are supported. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
+You can use flaskprofiler with **SqlLite**, **MongoDB**, **Postgresql**, **Mysql** or **MongoDB** database systems. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
 
 ### SQLite
 In order to use SQLite, just specify it as the value of `storage.engine` directive as follows.
