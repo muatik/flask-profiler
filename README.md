@@ -257,6 +257,13 @@ app.config["flask_profiler"] = {
 }
 ```
 
+### Storing endpoint responses at flask-profiler storage.
+```python
+app.config["flask_profiler"] = {
+        "storeReponse": True
+}
+```
+
 ### Ignored endpoints
 Flask-profiler will try to track every endpoint defined so far when init_app() is invoked. If you want to exclude some of the endpoints, you can define matching regex for them as follows:
 

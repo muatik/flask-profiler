@@ -52,16 +52,10 @@ class Measurement(object):
         self.elapsed = 0
 
     def __json__(self):
-        return {
-            "name": self.name,
-            "args": self.args,
-            "kwargs": self.kwargs,
-            "method": self.method,
-            "startedAt": self.startedAt,
-            "endedAt": self.endedAt,
-            "elapsed": self.elapsed,
-            "context": self.context
-        }
+        return self.__dict__
+
+    def set_response(self, response):
+        setattr(self, 'response', response)
 
     def __str__(self):
         return str(self.__json__())
@@ -104,6 +98,7 @@ def measure(f, name, method, context=None):
 
         measurement = Measurement(name, args, kwargs, method, context)
         measurement.start()
+        returnVal = None
 
         try:
             returnVal = f(*args, **kwargs)
@@ -111,6 +106,10 @@ def measure(f, name, method, context=None):
             raise
         finally:
             measurement.stop()
+
+            if CONF.get("storeResponse", False):
+                measurement.set_response(returnVal)
+
             if CONF.get("verbose", False):
                 pp(measurement.__json__())
             collection.insert(measurement.__json__())
