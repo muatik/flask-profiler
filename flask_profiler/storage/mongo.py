@@ -86,7 +86,7 @@ class Mongo(BaseStorage):
         measurement["endedAt"] = datetime.datetime.fromtimestamp(
             measurement["endedAt"])
 
-        result = self.collection.insert(measurement)
+        result = self.collection.insert(measurement, check_keys=False)
         if result:
             return True
         return False
