@@ -28,10 +28,11 @@ class Measurements(base):
     args = Column(Text)
     kwargs = Column(Text)
     name = Column(Text)
-    context = Column(Text)
+    context = Column(Text),
+    response = Column(Text)
 
     def __repr__(self):
-        return "<Measurements {}, {}, {}, {}, {}, {}, {}, {}, {}>".format(
+        return "<Measurements {}, {}, {}, {}, {}, {}, {}, {}, {}, {}>".format(
             self.id,
             self.startedAt,
             self.endedAt,
@@ -40,7 +41,8 @@ class Measurements(base):
             self.args,
             self.kwargs,
             self.name,
-            self.context
+            self.context,
+            self.response
         )
 
 
@@ -69,6 +71,7 @@ class Sqlachemy(BaseStorage):
         context = json.dumps(kwds.get('context', {}))
         method = kwds.get('method', None)
         name = kwds.get('name', None)
+        response = kwds.get('response', None)
 
         session = sessionmaker(self.db)()
         session.add(Measurements(
@@ -80,6 +83,7 @@ class Sqlachemy(BaseStorage):
             context=context,
             method=method,
             name=name,
+            response=response
         ))
         session.commit()
 
@@ -140,7 +144,8 @@ class Sqlachemy(BaseStorage):
             "kwargs": json.loads(row.kwargs),
             "method": row.method,
             "context": json.loads(row.context),
-            "name": row.name
+            "name": row.name,
+            "response": row.response
         }
         return data
 
@@ -196,11 +201,52 @@ class Sqlachemy(BaseStorage):
                 "method": r[0],
                 "name": r[1],
                 "count": r[2],
-                "minElapsed": r[3],
-                "maxElapsed": r[4],
-                "avgElapsed": r[5]
+                "minElapsed": float(r[3]),
+                "maxElapsed": float(r[4]),
+                "avgElapsed": float(r[5])
             })
         return result
+
+    def getTimeseries(self, filtering={}):
+        f = Sqlachemy.getFilters(filtering)
+        session = sessionmaker(self.db)()
+        sess = session.query(Measurements)
+
+        if filtering.get('interval', None) == "daily":
+            dateFormat = '%Y-%m-%d'
+            interval = 3600 * 24   # daily
+        else:
+            dateFormat = '%Y-%m-%d %H'
+            interval = 3600  # hourly
+
+        endedAt = f.get("endedAt")
+        startedAt = f.get("startedAt")
+
+        if not endedAt:
+            endedAt = time.time()
+
+        if not startedAt:
+            startedAt = time.time() - 3600 * 24 * 7
+
+        series = {}
+        queries = []
+        pointer = startedAt
+        for i in range(int(startedAt), int(endedAt), interval):
+            queries.append((pointer, pointer+interval))
+            pointer = pointer + interval
+        for q_date in queries:
+            endDate = q_date[1]
+            c = sess.filter(Measurements.startedAt >= q_date[0], Measurements.startedAt <= q_date[1]).count()
+            series[datetime.fromtimestamp(endDate).strftime(dateFormat)] = c
+        return series
+
+    def getMethodDistribution(self, filtering):
+        session = sessionmaker(self.db)()
+        rows = session.query(Measurements.method, func.count(Measurements.method)).group_by(Measurements.method).all()
+        distribution = {}
+        for r in rows:
+            distribution[r[0]] = r[1]
+        return distribution
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.db

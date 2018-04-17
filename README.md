@@ -289,7 +289,7 @@ Review the [Contributing Guidelines](https://github.com/muatik/flask-profiler/wi
 
 ## Authors
 * [Musafa Atik](https://www.linkedin.com/in/muatik)
-* Fatih Sucu
+* [Fatih Sucu](https://www.linkedin.com/in/fatih-sucu-99007894/)
 * [Safa Yasin Yildirim](https://www.linkedin.com/in/safayasinyildirim)
 
 ## License

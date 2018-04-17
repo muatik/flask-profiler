@@ -11,7 +11,7 @@ app.config["flask_profiler"] = {
     "verbose": True,
     "enabled": app.config["DEBUG"],
     "storage": {
-        "engine": "sqlalchmey",
+        "engine": "sqlalchemy",
         "db_url": "sqlite:///flask_profiler.sql"  # optional
     },
     "basicAuth":{
@@ -22,7 +22,8 @@ app.config["flask_profiler"] = {
     "ignore": [
         "/static/*",
         "/secrets/password/"
-    ]
+    ],
+    "storeResponse": True
 }
 
 
@@ -54,9 +55,9 @@ flask_profiler.init_app(app)
 
 # endpoint declarations after flask_profiler.init_app() will be
 # hidden to flask_profider.
-@app.route('/doSomething', methods=['GET'])
-def doSomething():
-    return "flask-provider will not measure this."
+# @app.route('/doSomething', methods=['GET'])
+# def doSomething():
+#     return "flask-provider will not measure this."
 
 
 # But in case you want an endpoint to be measured by flask-provider,
