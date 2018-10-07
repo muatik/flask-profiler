@@ -58,11 +58,15 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         self.client.get("/api/with/profiler/hello?q=2")
         measurements = list(flask_profiler.collection.filter())
         self.assertEqual(len(measurements), 3)
-        m = measurements[0]
-        self.assertEqual(m["name"], "/api/with/profiler/<message>")
-        self.assertEqual(m["method"], "GET")
-        self.assertEqual(m["kwargs"], {"message": "hello"})
-        self.assertEqual(m["context"]["args"], {"q": "2"})
+        test_flag = False
+        for list_element in measurements:
+            if list_element["name"] == "/api/with/profiler/<message>":
+                test_flag = True
+                self.assertEqual(list_element["name"], "/api/with/profiler/<message>")
+                self.assertEqual(list_element["method"], "GET")
+                self.assertEqual(list_element["kwargs"], {"message": "hello"})
+                self.assertEqual(list_element["context"]["args"], {"q": "2"})
+        self.assertEqual(True, test_flag)
 
 
 if __name__ == '__main__':

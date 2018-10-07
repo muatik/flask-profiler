@@ -15,12 +15,14 @@ from setuptools import setup
 
 
 tests_require = [
-    "Flask-Testing"
+    "Flask-Testing",
+    'simplejson'
 ]
 
 install_requires = [
     'Flask',
-    'Flask-HTTPAuth'
+    'Flask-HTTPAuth',
+    'simplejson'
 ]
 
 setup(
