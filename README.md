@@ -1,7 +1,6 @@
 # Flask-profiler
 
-
-**version: 1.7** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
+**Version: 1.7** [![Build Status](https://travis-ci.org/muatik/flask-profiler.svg?branch=master)](https://travis-ci.org/muatik/flask-profiler)
 
 ##### Flask-profiler measures endpoints defined in your flask application; and provides you fine-grained report through a web interface.
 
@@ -62,8 +61,8 @@ app.config["flask_profiler"] = {
         "password": "admin"
     },
     "ignore": [
-	    "^/static/.*"
-	]
+        "^/static/.*"
+    ]
 }
 
 
@@ -107,8 +106,6 @@ def doSomethingImportant():
 
 if __name__ == '__main__':
     app.run(host="127.0.0.1", port=5000)
-
-
 ```
 
 Now run your `app.py`
@@ -161,7 +158,6 @@ profiler.init_app(app)
 @app.route('/product/<id>', methods=['GET'])
 def getProduct(id):
     return "product id is " + str(id)
-
 ```
 
 ## Using with different database system
@@ -256,7 +252,7 @@ By default, we can access flask-profiler at <your-app>/flask-profiler
 
 ```python
 app.config["flask_profiler"] = {
-        "endpointRoot": "secret-flask-profiler"
+    "endpointRoot": "secret-flask-profiler"
 }
 ```
 
@@ -265,10 +261,10 @@ Flask-profiler will try to track every endpoint defined so far when init_app() i
 
 ```python
 app.config["flask_profiler"] = {
-        "ignore": [
-	        "^/static/.*",
-	        "/api/users/\w+/password"
-        ]
+    "ignore": [
+        "^/static/.*",
+        "/api/users/\w+/password"
+    ]
 }
 ```
 
