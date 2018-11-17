@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, Text
 from sqlalchemy import Column, Integer, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
 base = declarative_base()
 
@@ -110,48 +111,39 @@ class Sqlalchemy(BaseStorage):
     def filter(self, kwds={}):
         # Find Operation
         f = Sqlalchemy.getFilters(kwds)
-
-        conditions = "WHERE 1=1 AND "
+        session = sessionmaker(self.db)()
+        query = session.query(Measurements)
 
         if f["endedAt"]:
-            conditions = conditions + 'endedAt<={0} AND '.format(f["endedAt"])
+            query = query.filter(Measurements.endedAt <= f["endedAt"])
         if f["startedAt"]:
-            conditions = conditions + 'startedAt>={0} AND '.format(
-                f["startedAt"])
+            query = query.filter(Measurements.startedAt >= f["startedAt"])
         if f["elapsed"]:
-            conditions = conditions + 'elapsed>={0} AND '.format(f["elapsed"])
+            query = query.filter(Measurements.elapsed >= f["elapsed"])
         if f["method"]:
-            conditions = conditions + 'method="{0}" AND '.format(f["method"])
+            query = query.filter(Measurements.method == f["method"])
         if f["name"]:
-            conditions = conditions + 'name="{0}" AND '.format(f["name"])
+            query = query.filter(Measurements.name == f["name"])
 
-        conditions = conditions.rstrip(" AND")
-
-        sql = '''SELECT * FROM flask_profiler_measurements {conditions}
-        order by {sort_field} {sort_direction}
-        limit {limit} OFFSET {skip} '''.format(
-            conditions=conditions,
-            sort_field=f["sort"][0],
-            sort_direction=f["sort"][1],
-            limit=f['limit'],
-            skip=f['skip']
-        )
-        session = sessionmaker(self.db)()
-        rows = session.execute(sql)
+        if f["sort"][1] == 'desc':
+            query = query.order_by(getattr(Measurements, f["sort"][0]).desc())
+        else:
+            query = query.order_by(getattr(Measurements, f["sort"][0]).asc())
+        rows = query.limit(f['limit']).offset(f['skip'])
         return (Sqlalchemy.jsonify_row(row) for row in rows)
 
     @staticmethod
     def jsonify_row(row):
         data = {
-            "id": row[0],
-            "startedAt": row[1],
-            "endedAt": row[2],
-            "elapsed": row[3],
-            "method": row[4],
-            "args": tuple(json.loads(row[5])),  # json -> list -> tuple
-            "kwargs": json.loads(row[6]),
-            "name": row[7],
-            "context": json.loads(row[8]),
+            "id": row.id,
+            "startedAt": row.startedAt,
+            "endedAt": row.endedAt,
+            "elapsed": row.elapsed,
+            "method": row.method,
+            "args": tuple(json.loads(row.args)),  # json -> list -> tuple
+            "kwargs": json.loads(row.kwargs),
+            "name": row.name,
+            "context": json.loads(row.context),
         }
         return data
 
@@ -177,37 +169,53 @@ class Sqlalchemy(BaseStorage):
 
     def getSummary(self, kwds={}):
         filters = Sqlalchemy.getFilters(kwds)
-
-        conditions = "WHERE 1=1 and "
+        session = sessionmaker(self.db)()
+        count = func.count(Measurements.id).label('count')
+        min_elapsed = func.min(Measurements.elapsed).label('minElapsed')
+        max_elapsed = func.max(Measurements.elapsed).label('maxElapsed')
+        avg_elapsed = func.avg(Measurements.elapsed).label('avgElapsed')
+        query = session.query(
+            Measurements.method,
+            Measurements.name,
+            count,
+            min_elapsed,
+            max_elapsed,
+            avg_elapsed
+        )
 
         if filters["startedAt"]:
-            conditions = conditions + "startedAt>={0} AND ".format(
-                filters["startedAt"])
+            query = query.filter(Measurements.startedAt >= filters["startedAt"])
         if filters["endedAt"]:
-            conditions = conditions + "endedAt<={0} AND ".format(
-                filters["endedAt"])
+            query = query.filter(Measurements.endedAt <= filters["endedAt"])
         if filters["elapsed"]:
-            conditions = conditions + "elapsed>={0} AND".format(
-                filters["elapsed"])
+            query = query.filter(Measurements.elapsed >= filters["elapsed"])
 
-        conditions = conditions.rstrip(" AND")
-
-        sql = '''SELECT
-                method, name,
-                count(id) as count,
-                min(elapsed) as minElapsed,
-                max(elapsed) as maxElapsed,
-                avg(elapsed) as avgElapsed
-            FROM flask_profiler_measurements {conditions}
-            group by method, name
-            order by {sort_field} {sort_direction}
-            '''.format(
-                conditions=conditions,
-                sort_field=filters["sort"][0],
-                sort_direction=filters["sort"][1]
-                )
-        session = sessionmaker(self.db)()
-        rows = session.execute(sql)
+        query = query.group_by(Measurements.method, Measurements.name)
+        if filters["sort"][1] == 'desc':
+            if filters["sort"][0] == 'count':
+                query = query.order_by(count.desc())
+            elif filters["sort"][0] == 'minElapsed':
+                query = query.order_by(min_elapsed.desc())
+            elif filters["sort"][0] == 'maxElapsed':
+                query = query.order_by(max_elapsed.desc())
+            elif filters["sort"][0] == 'avgElapsed':
+                query = query.order_by(avg_elapsed.desc())
+            else:
+                query = query.order_by(
+                    getattr(Measurements, filters["sort"][0]).desc())
+        else:
+            if filters["sort"][0] == 'count':
+                query = query.order_by(count.asc())
+            elif filters["sort"][0] == 'minElapsed':
+                query = query.order_by(min_elapsed.asc())
+            elif filters["sort"][0] == 'maxElapsed':
+                query = query.order_by(max_elapsed.asc())
+            elif filters["sort"][0] == 'avgElapsed':
+                query = query.order_by(avg_elapsed.asc())
+            else:
+                query = query.order_by(
+                    getattr(Measurements, filters["sort"][0]).asc())
+        rows = query.all()
 
         result = []
         for r in rows:
@@ -223,57 +231,59 @@ class Sqlalchemy(BaseStorage):
 
     def getTimeseries(self, kwds={}):
         filters = Sqlalchemy.getFilters(kwds)
-
+        session = sessionmaker(self.db)()
         if kwds.get('interval', None) == "daily":
             interval = 3600 * 24   # daily
             dateFormat = "%Y-%m-%d"
+            format = "day"
         else:
             interval = 3600  # hourly
             dateFormat = "%Y-%m-%d %H"
-
+            format = "hour"
         endedAt, startedAt = filters["endedAt"], filters["startedAt"]
 
-        conditions = "where endedAt<={0} AND startedAt>={1} ".format(
-            endedAt, startedAt)
+        rows = session.query(
+            Measurements.startedAt,
+        ).filter(
+            Measurements.endedAt <= endedAt,
+            Measurements.startedAt >= startedAt
+        ).order_by(
+            Measurements.startedAt.asc()
+        ).all()
 
-        sql = '''SELECT
-                startedAt, count(id) as count
-            FROM flask_profiler_measurements {conditions}
-            group by DATE_FORMAT(from_unixtime(startedAt), "{dateFormat}")
-            order by startedAt asc
-            '''.format(
-                dateFormat=dateFormat,
-                conditions=conditions
-                )
-        session = sessionmaker(self.db)()
-        rows = session.execute(sql)
-
+        rows = [datetime.utcfromtimestamp(row[0]).strftime(dateFormat) for row in rows]
+        temp = set(rows)
+        rows = [(time, rows.count(time)) for time in temp]
         series = {}
+
         for i in range(int(startedAt), int(endedAt) + 1, interval):
             series[formatDate(i, dateFormat)] = 0
 
         for row in rows:
-            series[formatDate(row[0], dateFormat)] = row[1]
+            series[
+                formatDate(
+                    datetime.strptime(row[0], dateFormat).timestamp(),
+                    dateFormat
+                )
+            ] = row[1]
         return series
 
     def getMethodDistribution(self, kwds=None):
         if not kwds:
             kwds = {}
         f = Sqlalchemy.getFilters(kwds)
-        endedAt, startedAt = f["endedAt"], f["startedAt"]
-        conditions = "where endedAt<={0} AND startedAt>={1} ".format(
-            endedAt, startedAt)
-
-        sql = '''SELECT
-                method, count(id) as count
-            FROM flask_profiler_measurements {conditions}
-            group by method
-            '''.format(
-                conditions=conditions
-                )
         session = sessionmaker(self.db)()
-        rows = session.execute(sql)
+        endedAt, startedAt = f["endedAt"], f["startedAt"]
 
+        rows = session.query(
+            Measurements.method,
+            func.count(Measurements.id)
+        ).filter(
+            Measurements.endedAt <= endedAt,
+            Measurements.startedAt >= startedAt
+        ).group_by(
+            Measurements.method
+        ).all()
 
         results = {}
         for row in rows:
