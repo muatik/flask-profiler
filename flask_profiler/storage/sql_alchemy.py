@@ -22,7 +22,7 @@ class Measurements(base):
     id = Column(Integer, primary_key=True)
     startedAt = Column(Numeric)
     endedAt = Column(Numeric)
-    elapsed = Column(Numeric(6, 4))
+    elapsed = Column(Numeric(10, 4))
     method = Column(Text)
     args = Column(Text)
     kwargs = Column(Text)
