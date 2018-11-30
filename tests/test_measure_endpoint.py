@@ -87,9 +87,17 @@ class JsonrpcMeasurementTest(JsonrpcBaseTest, FlaskTestCase):
         measurements = list(flask_profiler.collection.filter())
 
         self.assertEqual(len(measurements), 3)
-        self.assertEqual(measurements[0]['name'], 'people.index')
-        self.assertEqual(measurements[1]['name'], 'people.index')
-        self.assertEqual(measurements[2]['name'], 'people.get')
+
+        measurement_functions = {'index': 0, 'get': 0}
+        for measurement in measurements:
+            if measurement['name'] == 'people.index':
+                measurement_functions['index'] += 1
+
+            if measurement['name'] == 'people.get':
+                measurement_functions['get'] += 1
+
+        self.assertEqual(measurement_functions['index'], 2)
+        self.assertEqual(measurement_functions['get'], 1)
 
 
 if __name__ == '__main__':
