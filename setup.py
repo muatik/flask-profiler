@@ -16,7 +16,8 @@ from setuptools import setup
 
 tests_require = [
     "Flask-Testing",
-    'simplejson'
+    "simplejson",
+    "sqlalchemy"
 ]
 
 install_requires = [

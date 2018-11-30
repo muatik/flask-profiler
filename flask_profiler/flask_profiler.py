@@ -16,6 +16,8 @@ from flask_httpauth import HTTPBasicAuth
 from . import storage
 
 CONF = {}
+ALLOWED_ARCHITECTURAL_STYLE = ['rest', 'jsonrpc']
+
 collection = None
 auth = HTTPBasicAuth()
 
@@ -132,7 +134,19 @@ def wrapHttpEndpoint(f):
             "func": request.endpoint,
             "ip": request.remote_addr
         }
-        endpoint_name = str(request.url_rule)
+
+        if 'architectural_style' in CONF:
+            if not CONF['architectural_style'] in ALLOWED_ARCHITECTURAL_STYLE:
+                raise Exception('{} is not one of allowed {} architectural styles.'.format(CONF['architectural_style'],
+                                                                                           ALLOWED_ARCHITECTURAL_STYLE))
+            if CONF['architectural_style'] == 'rest':
+                endpoint_name = str(request.url_rule)
+
+            if CONF['architectural_style'] == 'jsonrpc':
+                endpoint_name = str(request.form.to_dict()['method'])
+        else:
+            endpoint_name = str(request.url_rule)
+
         wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
 

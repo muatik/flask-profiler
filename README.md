@@ -272,6 +272,14 @@ app.config["flask_profiler"] = {
 }
 ```
 
+### jsonrpc support
+If you use jsonrpc, is better use method name included in body for a measurement name. The stats are divided correctly at that time. This parameter is optional, in default is used rest.
+
+```python
+app.config["flask_profiler"] = {
+        "architectural_style": 'jsonrpc'
+}
+```
 
 ## Contributing
 

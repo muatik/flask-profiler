@@ -3,7 +3,7 @@ import unittest
 
 from flask_testing import TestCase as FlaskTestCase
 
-from .basetest import BasetTest, BaseTest2, flask_profiler
+from .basetest import BasetTest, BaseTest2, flask_profiler, JsonrpcBaseTest
 
 
 class EndpointMeasurementTest(BasetTest, FlaskTestCase):
@@ -67,6 +67,37 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
                 self.assertEqual(list_element["kwargs"], {"message": "hello"})
                 self.assertEqual(list_element["context"]["args"], {"q": "2"})
         self.assertEqual(True, test_flag)
+
+
+class JsonrpcMeasurementTest(JsonrpcBaseTest, FlaskTestCase):
+
+    def test_01_profiler(self):
+        self.client.post("/v1", data={"jsonrpc": "2.0", "method": "people.index", "id": "1"})
+
+        measurements = list(flask_profiler.collection.filter())
+
+        self.assertEqual(len(measurements), 1)
+        self.assertEqual(measurements[0]['name'], 'people.index')
+
+    def test_02_profiler(self):
+        self.client.post("/v1", data={"jsonrpc": "2.0", "method": "people.index", "id": "1"})
+        self.client.post("/v1", data={"jsonrpc": "2.0", "method": "people.index", "id": "1"})
+        self.client.post("/v1", data={"jsonrpc": "2.0", "method": "people.get", "id": "1"})
+
+        measurements = list(flask_profiler.collection.filter())
+
+        self.assertEqual(len(measurements), 3)
+
+        measurement_functions = {'index': 0, 'get': 0}
+        for measurement in measurements:
+            if measurement['name'] == 'people.index':
+                measurement_functions['index'] += 1
+
+            if measurement['name'] == 'people.get':
+                measurement_functions['get'] += 1
+
+        self.assertEqual(measurement_functions['index'], 2)
+        self.assertEqual(measurement_functions['get'], 1)
 
 
 if __name__ == '__main__':
