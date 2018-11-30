@@ -1,3 +1,7 @@
+version 1.9
+====================
+- add jsonrpc support
+
 version 1.6
 ====================
 - sqlalchemy support
