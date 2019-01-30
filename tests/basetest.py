@@ -89,6 +89,10 @@ class BasetTest(unittest.TestCase):
         def getPersonalSettingsName():
             return "your personal settings name"
 
+        @app.route("/api/uuid/<uuid:test_uuid>")
+        def getUuid(test_uuid):
+            return "your uuid"
+
         flask_profiler.init_app(app)
 
         @app.route("/api/without/profiler")
