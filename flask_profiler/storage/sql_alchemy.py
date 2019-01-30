@@ -8,12 +8,20 @@ from sqlalchemy import Column, Integer, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
+import uuid
 
 base = declarative_base()
 
 
 def formatDate(timestamp, dateFormat):
     return datetime.fromtimestamp(timestamp).strftime(dateFormat)
+
+
+class UUIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return obj.hex
+        return json.JSONEncoder.default(self, obj)
 
 
 class Measurements(base):
@@ -66,7 +74,7 @@ class Sqlalchemy(BaseStorage):
         if elapsed:
             elapsed = elapsed.quantize(Decimal('.0001'), rounding=ROUND_UP)
         args = json.dumps(list(kwds.get('args', ())))  # tuple -> list -> json
-        kwargs = json.dumps(kwds.get('kwargs', ()))
+        kwargs = json.dumps(kwds.get('kwargs', ()), cls=UUIDEncoder)
         context = json.dumps(kwds.get('context', {}))
         method = kwds.get('method', None)
         name = kwds.get('name', None)

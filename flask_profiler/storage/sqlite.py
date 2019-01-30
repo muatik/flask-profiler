@@ -4,11 +4,19 @@ from .base import BaseStorage
 from datetime import datetime
 from timeit import default_timer
 import time
+import uuid
 # from time import perf_counter
 
 
 def formatDate(timestamp, dateFormat):
     return datetime.fromtimestamp(timestamp).strftime(dateFormat)
+
+
+class UUIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return obj.hex
+        return json.JSONEncoder.default(self, obj)
 
 
 class Sqlite(BaseStorage):
@@ -109,7 +117,7 @@ class Sqlite(BaseStorage):
         startedAt = float(kwds.get('startedAt', None))
         elapsed = kwds.get('elapsed', None)
         args = json.dumps(list(kwds.get('args', ())))  # tuple -> list -> json
-        kwargs = json.dumps(kwds.get('kwargs', ()))
+        kwargs = json.dumps(kwds.get('kwargs', ()), cls=UUIDEncoder)
         context = json.dumps(kwds.get('context', {}))
         method = kwds.get('method', None)
         name = kwds.get('name', None)
