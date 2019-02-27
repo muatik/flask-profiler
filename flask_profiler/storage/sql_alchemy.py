@@ -49,7 +49,8 @@ class Sqlalchemy(BaseStorage):
         super(Sqlalchemy, self).__init__()
         self.config = config
         self.db = create_engine(
-            self.config.get("db_url", "sqlite:///flask_profiler.sql")
+            self.config.get("db_url", "sqlite:///flask_profiler.sql"),
+            pool_pre_ping=True
         )
         self.create_database()
 
