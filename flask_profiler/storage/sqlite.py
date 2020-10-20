@@ -5,6 +5,7 @@ from datetime import datetime
 from timeit import default_timer
 import time
 # from time import perf_counter
+import threading
 
 
 def formatDate(timestamp, dateFormat):
@@ -31,6 +32,8 @@ class Sqlite(BaseStorage):
         self.connection = sqlite3.connect(
             self.sqlite_file, check_same_thread=False)
         self.cursor = self.connection.cursor()
+
+        self.lock = threading.Lock()
         try:
             self.create_database()
         except sqlite3.OperationalError as e:
@@ -65,44 +68,45 @@ class Sqlite(BaseStorage):
         return filters
 
     def create_database(self):
-        sql = '''CREATE TABLE {table_name}
-            (
-            ID Integer PRIMARY KEY AUTOINCREMENT,
-            {startedAt} REAL,
-            {endedAt} REAL,
-            {elapsed} REAL,
-            {args} TEXT,
-            {kwargs} TEXT,
-            {method} TEXT,
-            {context} TEXT,
-            {name} TEXT
-            );
-        '''.format(
-                table_name=self.table_name,
+        with self.lock:
+            sql = '''CREATE TABLE {table_name}
+                (
+                ID Integer PRIMARY KEY AUTOINCREMENT,
+                {startedAt} REAL,
+                {endedAt} REAL,
+                {elapsed} REAL,
+                {args} TEXT,
+                {kwargs} TEXT,
+                {method} TEXT,
+                {context} TEXT,
+                {name} TEXT
+                );
+            '''.format(
+                    table_name=self.table_name,
+                    startedAt=self.startedAt_head,
+                    endedAt=self.endedAt_head,
+                    elapsed=self.elapsed_head,
+                    args=self.args_head,
+                    kwargs=self.kwargs_head,
+                    method=self.method_head,
+                    context=self.context_head,
+                    name=self.name_head
+                )
+            self.cursor.execute(sql)
+
+            sql = """
+            CREATE INDEX measurement_index ON {table_name}
+                ({startedAt}, {endedAt}, {elapsed}, {name}, {method});
+            """.format(
                 startedAt=self.startedAt_head,
                 endedAt=self.endedAt_head,
                 elapsed=self.elapsed_head,
-                args=self.args_head,
-                kwargs=self.kwargs_head,
+                name=self.name_head,
                 method=self.method_head,
-                context=self.context_head,
-                name=self.name_head
-            )
-        self.cursor.execute(sql)
+                table_name=self.table_name)
+            self.cursor.execute(sql)
 
-        sql = """
-        CREATE INDEX measurement_index ON {table_name}
-            ({startedAt}, {endedAt}, {elapsed}, {name}, {method});
-        """.format(
-            startedAt=self.startedAt_head,
-            endedAt=self.endedAt_head,
-            elapsed=self.elapsed_head,
-            name=self.name_head,
-            method=self.method_head,
-            table_name=self.table_name)
-        self.cursor.execute(sql)
-
-        self.connection.commit()
+            self.connection.commit()
 
     def insert(self, kwds):
         endedAt = float(kwds.get('endedAt', None))
@@ -117,17 +121,18 @@ class Sqlite(BaseStorage):
         sql = """INSERT INTO {0} VALUES (
             null, ?, ?, ?, ?,?, ?, ?, ?)""".format(self.table_name)
 
-        self.cursor.execute(sql, (
-                startedAt,
-                endedAt,
-                elapsed,
-                args,
-                kwargs,
-                method,
-                context,
-                name))
+        with self.lock:
+            self.cursor.execute(sql, (
+                    startedAt,
+                    endedAt,
+                    elapsed,
+                    args,
+                    kwargs,
+                    method,
+                    context,
+                    name))
 
-        self.connection.commit()
+            self.connection.commit()
 
     def getTimeseries(self, kwds={}):
         filters = Sqlite.getFilters(kwds)
@@ -143,20 +148,20 @@ class Sqlite(BaseStorage):
 
         conditions = "where endedAt<={0} AND startedAt>={1} ".format(
             endedAt, startedAt)
+        with self.lock:
+            sql = '''SELECT
+                    startedAt, count(id) as count
+                FROM "{table_name}" {conditions}
+                group by strftime("{dateFormat}", datetime(startedAt, 'unixepoch'))
+                order by startedAt asc
+                '''.format(
+                    table_name=self.table_name,
+                    dateFormat=dateFormat,
+                    conditions=conditions
+                    )
 
-        sql = '''SELECT
-                startedAt, count(id) as count
-            FROM "{table_name}" {conditions}
-            group by strftime("{dateFormat}", datetime(startedAt, 'unixepoch'))
-            order by startedAt asc
-            '''.format(
-                table_name=self.table_name,
-                dateFormat=dateFormat,
-                conditions=conditions
-                )
-
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+            self.cursor.execute(sql)
+            rows = self.cursor.fetchall()
 
         series = {}
         for i in range(int(startedAt), int(endedAt) + 1, interval):
@@ -174,17 +179,18 @@ class Sqlite(BaseStorage):
         conditions = "where endedAt<={0} AND startedAt>={1} ".format(
             endedAt, startedAt)
 
-        sql = '''SELECT
-                method, count(id) as count
-            FROM "{table_name}" {conditions}
-            group by method
-            '''.format(
-                table_name=self.table_name,
-                conditions=conditions
-                )
+        with self.lock:
+            sql = '''SELECT
+                    method, count(id) as count
+                FROM "{table_name}" {conditions}
+                group by method
+                '''.format(
+                    table_name=self.table_name,
+                    conditions=conditions
+                    )
 
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+            self.cursor.execute(sql)
+            rows = self.cursor.fetchall()
 
         results = {}
         for row in rows:
@@ -211,47 +217,51 @@ class Sqlite(BaseStorage):
 
         conditions = conditions.rstrip(" AND")
 
-        sql = '''SELECT * FROM "{table_name}" {conditions}
-        order by {sort_field} {sort_direction}
-        limit {limit} OFFSET {skip} '''.format(
-            table_name=self.table_name,
-            conditions=conditions,
-            sort_field=f["sort"][0],
-            sort_direction=f["sort"][1],
-            limit=f['limit'],
-            skip=f['skip']
-        )
+        with self.lock:
+            sql = '''SELECT * FROM "{table_name}" {conditions}
+            order by {sort_field} {sort_direction}
+            limit {limit} OFFSET {skip} '''.format(
+                table_name=self.table_name,
+                conditions=conditions,
+                sort_field=f["sort"][0],
+                sort_direction=f["sort"][1],
+                limit=f['limit'],
+                skip=f['skip']
+            )
 
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+            self.cursor.execute(sql)
+            rows = self.cursor.fetchall()
         return (self.jsonify_row(row) for row in rows)
 
     def get(self, measurementId):
-        self.cursor.execute(
-            'SELECT * FROM "{table_name}" WHERE ID={measurementId}'.format(
-                table_name=self.table_name,
-                measurementId=measurementId
-                )
-        )
-        rows = self.cursor.fetchall()
+        with self.lock:
+            self.cursor.execute(
+                'SELECT * FROM "{table_name}" WHERE ID={measurementId}'.format(
+                    table_name=self.table_name,
+                    measurementId=measurementId
+                    )
+            )
+            rows = self.cursor.fetchall()
         record = rows[0]
         return self.jsonify_row(record)
 
     def truncate(self):
-        self.cursor.execute("DELETE FROM {0}".format(self.table_name))
-        self.connection.commit()
+        with self.lock:
+            self.cursor.execute("DELETE FROM {0}".format(self.table_name))
+            self.connection.commit()
         # Making the api match with mongo collection, this function must return
         # True or False based on success of this delete operation
         return True if self.cursor.rowcount else False
 
     def delete(self, measurementId):
-        self.cursor.execute(
-            'DELETE FROM "{table_name}" WHERE ID={measurementId}'.format(
-                table_name=self.table_name,
-                measurementId=measurementId
-                )
-        )
-        return self.connection.commit()
+        with self.lock:
+            self.cursor.execute(
+                'DELETE FROM "{table_name}" WHERE ID={measurementId}'.format(
+                    table_name=self.table_name,
+                    measurementId=measurementId
+                    )
+            )
+            return self.connection.commit()
 
     def jsonify_row(self, row):
         data = {
@@ -284,25 +294,25 @@ class Sqlite(BaseStorage):
                 filters["elapsed"])
 
         conditions = conditions.rstrip(" AND")
+        with self.lock:
+            sql = '''SELECT
+                    method, name,
+                    count(id) as count,
+                    min(elapsed) as minElapsed,
+                    max(elapsed) as maxElapsed,
+                    avg(elapsed) as avgElapsed
+                FROM "{table_name}" {conditions}
+                group by method, name
+                order by {sort_field} {sort_direction}
+                '''.format(
+                    table_name=self.table_name,
+                    conditions=conditions,
+                    sort_field=filters["sort"][0],
+                    sort_direction=filters["sort"][1]
+                    )
 
-        sql = '''SELECT
-                method, name,
-                count(id) as count,
-                min(elapsed) as minElapsed,
-                max(elapsed) as maxElapsed,
-                avg(elapsed) as avgElapsed
-            FROM "{table_name}" {conditions}
-            group by method, name
-            order by {sort_field} {sort_direction}
-            '''.format(
-                table_name=self.table_name,
-                conditions=conditions,
-                sort_field=filters["sort"][0],
-                sort_direction=filters["sort"][1]
-                )
-
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
+            self.cursor.execute(sql)
+            rows = self.cursor.fetchall()
 
         result = []
         for r in rows:
