@@ -252,7 +252,7 @@ class Sqlalchemy(BaseStorage):
             Measurements.startedAt.asc()
         ).all()
 
-        rows = [datetime.utcfromtimestamp(row[0]).strftime(dateFormat) for row in rows]
+        rows = [datetime.fromtimestamp(row[0]).strftime(dateFormat) for row in rows]
         temp = set(rows)
         rows = [(time, rows.count(time)) for time in temp]
         series = {}
