@@ -3,7 +3,7 @@ Flask==1.0
 Flask-HTTPAuth==3.2.3
 Flask-Testing==0.6.2
 itsdangerous==0.24
-Jinja2==2.9.6
+Jinja2==2.11.3
 MarkupSafe==1.0
 Werkzeug==0.15.3
 sqlalchemy==1.1.14
