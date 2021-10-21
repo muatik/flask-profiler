@@ -19,7 +19,7 @@ def formatDate(timestamp, dateFormat):
 class Measurements(base):
     __tablename__ = 'flask_profiler_measurements'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     startedAt = Column(Numeric)
     endedAt = Column(Numeric)
     elapsed = Column(Numeric(10, 4))
