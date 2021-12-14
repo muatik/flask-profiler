@@ -82,7 +82,7 @@ def listProducts():
     return "suppose I send you product list..."
 
 @app.route('/static/something/', methods=['GET'])
-def listProducts():
+def staticSomething():
     return "this should not be tracked..."
 
 # In order to active flask-profiler, you have to pass flask

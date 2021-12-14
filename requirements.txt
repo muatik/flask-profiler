@@ -1,10 +1,10 @@
 click==6.7
-Flask==0.12.3
+Flask==1.0
 Flask-HTTPAuth==3.2.3
 Flask-Testing==0.6.2
 itsdangerous==0.24
 Jinja2==2.9.6
 MarkupSafe==1.0
-Werkzeug==0.12.2
+Werkzeug==0.15.3
 sqlalchemy==1.1.14
 simplejson==3.13.2
