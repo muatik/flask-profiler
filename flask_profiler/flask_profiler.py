@@ -3,7 +3,7 @@
 import functools
 import re
 import time
-
+import json
 from pprint import pprint as pp
 
 import logging
@@ -123,11 +123,14 @@ def measure(f, name, method, context=None):
 def wrapHttpEndpoint(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
+        body = request.data.decode("utf-8", "strict")
+        if body:
+            body = json.loads(body)
         context = {
             "url": request.base_url,
             "args": dict(request.args.items()),
             "form": dict(request.form.items()),
-            "body": request.data.decode("utf-8", "strict"),
+            "body": body,
             "headers": dict(request.headers.items()),
             "func": request.endpoint,
             "ip": request.remote_addr
