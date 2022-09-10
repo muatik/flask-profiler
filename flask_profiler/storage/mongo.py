@@ -263,7 +263,7 @@ class Mongo(BaseStorage):
 
     def aggregate(self, pipeline, **kwargs):
         """Perform an aggregation and make sure that result will be everytime
-        CommandCursor. Will take care for pymongo version differencies
+        CommandCursor. Will take care for pymongo version differences
         :param pipeline: {list} of aggregation pipeline stages
         :return: {pymongo.command_cursor.CommandCursor}
         """
