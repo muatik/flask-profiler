@@ -53,7 +53,7 @@ flask_profiler.init_app(app)
 
 
 # endpoint declarations after flask_profiler.init_app() will be
-# hidden to flask_profider.
+# hidden to flask_profiler.
 @app.route('/doSomething', methods=['GET'])
 def doSomething():
     return "flask-provider will not measure this."

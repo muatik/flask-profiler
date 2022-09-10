@@ -9,7 +9,7 @@ tl;dr: Contributors should follow the standard team development practices.
 * Check for unnecessary whitespace with git diff --check before committing.
 * Make sure your commit messages are in the proper format.
 * If your commit fixes an open issue, reference it in the commit message (#15).
-* Make sure your code comforms to [PEP8](https://www.python.org/dev/peps/pep-0008/).
+* Make sure your code conforms to [PEP8](https://www.python.org/dev/peps/pep-0008/).
 * Make sure you have added the necessary tests for your changes.
 * Run all the tests to assure nothing else was accidentally broken.
 
