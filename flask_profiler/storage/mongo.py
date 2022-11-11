@@ -20,7 +20,7 @@ class Mongo(BaseStorage):
         self.collection_name = self.config.get("COLLECTION", "measurements")
 
         def createIndex():
-            self.collection.ensure_index(
+            self.collection.create_index(
                 [
                     ('startedAt', 1),
                     ('endedAt', 1),
@@ -86,19 +86,19 @@ class Mongo(BaseStorage):
         measurement["endedAt"] = datetime.datetime.fromtimestamp(
             measurement["endedAt"])
 
-        result = self.collection.insert(measurement)
+        result = self.collection.insert_one(measurement)
         if result:
             return True
         return False
 
     def truncate(self):
-        result = self.collection.remove()
+        result = self.collection.delete_many({})
         if result:
             return True
         return False
 
     def delete(self, measurementId):
-        result = self.collection.remove({"_id": ObjectId(measurementId)})
+        result = self.collection.delete_one({"_id": ObjectId(measurementId)})
         if result:
             return True
         return False
