@@ -62,3 +62,6 @@ target/
 
 # Generated files
 *.sql
+
+# nix
+/result
