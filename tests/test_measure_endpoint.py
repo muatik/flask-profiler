@@ -1,5 +1,6 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 import unittest
+from uuid import uuid4
 
 from flask_testing import TestCase as FlaskTestCase
 
@@ -67,6 +68,14 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
                 self.assertEqual(list_element["kwargs"], {"message": "hello"})
                 self.assertEqual(list_element["context"]["args"], {"q": "2"})
         self.assertEqual(True, test_flag)
+
+    def test_that_routes_with_uuids_get_profiled_correctly(self):
+        expected_uuid = uuid4()
+        self.client.get(f'/api/people/by-id/{expected_uuid}')
+        measurement = list(flask_profiler.collection.filter())[0]
+        self.assertEqual(
+            measurement['kwargs']['id'], str(expected_uuid)
+        )
 
 
 if __name__ == '__main__':

@@ -1,8 +1,9 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 import functools
 import re
 import time
+from uuid import UUID
 
 from pprint import pprint as pp
 
@@ -102,7 +103,7 @@ def measure(f, name, method, context=None):
         if 'sampling_function' in CONF and not CONF['sampling_function']():
             return f(*args, **kwargs)
 
-        measurement = Measurement(name, args, kwargs, method, context)
+        measurement = Measurement(name, args, sanatize_kwargs(kwargs), method, context)
         measurement.start()
 
         try:
@@ -279,3 +280,10 @@ class Profiler(object):
     def init_app(self, app):
         init = functools.partial(self._init_app, app)
         app.before_first_request(init)
+
+
+def sanatize_kwargs(kwargs):
+    for key, value in list(kwargs.items()):
+        if isinstance(value, UUID):
+            kwargs[key] = str(value)
+    return kwargs

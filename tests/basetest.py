@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 import unittest
 import sys
 from os import environ, path
@@ -123,6 +123,10 @@ class BaseTest2(unittest.TestCase):
         @app.route("/api/people/<firstname>")
         def sayHello(firstname):
             return firstname
+
+        @app.route("/api/people/by-id/<uuid:id>")
+        def helloUuidRoute(id):
+            return id
 
         @app.route("/api/with/profiler/<message>")
         def customProfilerEP(message):
