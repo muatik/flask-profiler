@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flask_profiler"
+version = "1.8"
+dependencies = [
+    "Flask",
+    "Flask-HTTPAuth",
+    "simplejson"
+]
+description = "API endpoint profiler for Flask framework"
+readme = "README.md"
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+authors = [
+    { name = "Mustafa Atik", email = "muatik@gmail.com"},
+]
+keywords = [
+    "profiler", "flask", "performance", "optimization"
+]
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+github = "https://github.com/seppeljordan/flask-profiler"
+
+[tool.setuptools]
+packages = ["flask_profiler"]
+
+[tool.setuptools.package-data]
+mypkg = [
+    "storage/*",
+    "static/dist/fonts/*",
+    "static/dist/css/*",
+    "static/dist/js/*",
+    "static/dist/images/*",
+    "static/dist/js/*",
+    "static/dist/*",
+    "static/dist/index.html",
+]
