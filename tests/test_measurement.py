@@ -4,9 +4,10 @@ import unittest
 
 from flask_testing import TestCase
 
+from flask_profiler import measure
 from flask_profiler.flask_profiler import Configuration
 
-from .basetest import BasetTest, flask_profiler, measure
+from .basetest import BasetTest
 
 
 def doWait(seconds, **kwargs):
@@ -25,7 +26,7 @@ class MeasurementTest(BasetTest, TestCase):
         config = Configuration(self.app)
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 2
-        result = wrapped(waitSeconds)
+        wrapped(waitSeconds)
         m = list(config.collection.filter())[0]
         self.assertEqual(m["name"], "doWait")
         self.assertEqual(float(m["elapsed"]) >= waitSeconds, True)
@@ -39,7 +40,7 @@ class MeasurementTest(BasetTest, TestCase):
 
         waitSeconds = 1
         kwargs = {"k1": "kval1", "k2": "kval2"}
-        result = wrapped(waitSeconds, **kwargs)
+        wrapped(waitSeconds, **kwargs)
         m = list(config.collection.filter())[0]
         self.assertEqual(m["name"], name)
         self.assertEqual(m["method"], method)

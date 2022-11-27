@@ -6,7 +6,7 @@ from flask_testing import TestCase as FlaskTestCase
 
 from flask_profiler.flask_profiler import Configuration
 
-from .basetest import BaseTest2, BasetTest, flask_profiler
+from .basetest import BaseTest2, BasetTest
 
 
 class EndpointMeasurementTest(BasetTest, FlaskTestCase):

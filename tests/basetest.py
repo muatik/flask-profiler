@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-import sys
 import unittest
 from copy import copy
-from os import environ, path
+from os import environ
 
 from flask import Flask
 
+from flask_profiler import flask_profiler
 from flask_profiler.flask_profiler import Configuration
-
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-from flask_profiler import flask_profiler, measure, storage
 
 _CONFS = {
     "mongodb": {
