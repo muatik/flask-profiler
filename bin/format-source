@@ -20,7 +20,7 @@ def nixfmt():
     ]
     for nix_file in nix_files:
         completed_proc = subprocess.run(
-            ['nixfmt', '--check', 'nix_file'],
+            ['nixfmt', '--check', nix_file],
             capture_output=True,
         )
         if completed_proc.returncode != 0:

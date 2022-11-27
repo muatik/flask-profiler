@@ -13,7 +13,7 @@ class EndpointIgnoreTestCase(BasetTest, FlaskTestCase):
         pass
 
     def test_01__is_ignored(self):
-        conf = {"ignore": ["^/static/.*", "^/api/settings/\w+/secret/"]}
+        conf = {"ignore": [r"^/static/.*", r"^/api/settings/\w+/secret/"]}
 
         ignored_routes = [
             "/static/file",

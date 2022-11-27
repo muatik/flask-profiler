@@ -52,3 +52,8 @@ mypkg = [
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore:Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively, and SQLAlchemy must convert from floating point - rounding errors and other issues may occur.',
+]
