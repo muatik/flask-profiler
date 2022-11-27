@@ -29,7 +29,7 @@ def verify_password(username, password):
     c = CONF["basicAuth"]
     if username == c["username"] and password == c["password"]:
         return True
-    logging.warn("flask-profiler authentication failed")
+    logging.warning("flask-profiler authentication failed")
     return False
 
 
@@ -83,9 +83,9 @@ def is_ignored(name, conf):
 
 
 def measure(f, name, method, context=None):
-    logger.debug("{0} is being processed.".format(name))
+    logger.debug("{0} is being processed.")
     if is_ignored(name, CONF):
-        logger.debug("{0} is ignored.".format(name))
+        logger.debug("{0} is ignored.")
         return f
 
     @functools.wraps(f)
@@ -182,37 +182,37 @@ def registerInternalRouters(app):
         static_url_path="/static/dist",
     )
 
-    @fp.route("/".format(urlPath))
+    @fp.route("/")
     @auth.login_required
     def index():
         return fp.send_static_file("index.html")
 
-    @fp.route("/api/measurements/".format(urlPath))
+    @fp.route("/api/measurements/")
     @auth.login_required
     def filterMeasurements():
         args = dict(request.args.items())
         measurements = collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/api/measurements/grouped".format(urlPath))
+    @fp.route("/api/measurements/grouped")
     @auth.login_required
     def getMeasurementsSummary():
         args = dict(request.args.items())
         measurements = collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 
-    @fp.route("/api/measurements/<measurementId>".format(urlPath))
+    @fp.route("/api/measurements/<measurementId>")
     @auth.login_required
     def getContext(measurementId):
         return jsonify(collection.get(measurementId))
 
-    @fp.route("/api/measurements/timeseries/".format(urlPath))
+    @fp.route("/api/measurements/timeseries/")
     @auth.login_required
     def getRequestsTimeseries():
         args = dict(request.args.items())
         return jsonify({"series": collection.getTimeseries(args)})
 
-    @fp.route("/api/measurements/methodDistribution/".format(urlPath))
+    @fp.route("/api/measurements/methodDistribution/")
     @auth.login_required
     def getMethodDistribution():
         args = dict(request.args.items())
@@ -264,7 +264,7 @@ def init_app(app):
 
     basicAuth = CONF.get("basicAuth", None)
     if not basicAuth or not basicAuth["enabled"]:
-        logging.warn(" * CAUTION: flask-profiler is working without basic auth!")
+        logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
 
 
 class Profiler(object):
