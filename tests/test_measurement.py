@@ -4,8 +4,7 @@ import unittest
 
 from flask_testing import TestCase
 
-from flask_profiler import measure
-from flask_profiler.flask_profiler import Configuration
+from flask_profiler.flask_profiler import Configuration, measure
 
 from .basetest import BasetTest
 
