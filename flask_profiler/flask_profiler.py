@@ -229,7 +229,7 @@ def profile(*args, **kwargs):
     return wrapper
 
 
-def register_internal_routes(app: Flask, url_prefix: str = None) -> None:
+def register_internal_routes(app: Flask) -> None:
     """
     These are the endpoints which are used to display measurements in the
     flask-profiler dashboard.
@@ -320,24 +320,17 @@ def register_internal_routes(app: Flask, url_prefix: str = None) -> None:
     app.register_blueprint(fp)
 
 
-class Profiler:
-    """Wrapper for extension."""
+def init_app(app: Flask):
+    config = Configuration(app)
 
-    def __init__(self, app=None):
-        if app is not None:
-            self.init_app(app)
+    if not config.enabled:
+        return
 
-    def init_app(self, app):
-        config = Configuration(app)
+    wrapAppEndpoints(app)
+    register_internal_routes(app)
 
-        if not config.enabled:
-            return
-
-        wrapAppEndpoints(app)
-        register_internal_routes(app)
-
-        if not config.is_basic_auth_enabled:
-            logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
+    if not config.is_basic_auth_enabled:
+        logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
 
 
 def sanatize_kwargs(kwargs):

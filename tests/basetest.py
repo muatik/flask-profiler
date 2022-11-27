@@ -75,7 +75,7 @@ class BasetTest(unittest.TestCase):
         def getPersonalSettingsName():
             return "your personal settings name"
 
-        flask_profiler.Profiler(app)
+        flask_profiler.init_app(app)
 
         @app.route("/api/without/profiler")
         def withoutProfiler():
@@ -99,7 +99,6 @@ class BaseTest2(unittest.TestCase):
         app = Flask(__name__)
         app.config["flask_profiler"] = CONF
         app.config["TESTING"] = True
-        profiler = flask_profiler.Profiler()
 
         @app.route("/api/people/<firstname>")
         def sayHello(firstname):
@@ -113,5 +112,5 @@ class BaseTest2(unittest.TestCase):
         def customProfilerEP(message):
             return "with profiler"
 
-        profiler.init_app(app)
+        flask_profiler.init_app(app)
         return app
