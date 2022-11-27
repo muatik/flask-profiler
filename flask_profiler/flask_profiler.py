@@ -5,7 +5,7 @@ import logging
 import re
 import time
 from pprint import pprint as pp
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from flask import Blueprint, Flask, current_app, g, has_app_context, jsonify, request
