@@ -3,18 +3,17 @@ import unittest
 
 from flask_testing import TestCase as FlaskTestCase
 
-from flask_profiler.flask_profiler import is_ignored
+from flask_profiler.flask_profiler import Configuration, is_ignored
 
-from .basetest import BasetTest, flask_profiler
+from .basetest import BasetTest
 
 
 class EndpointIgnoreTestCase(BasetTest, FlaskTestCase):
-    def tearDown(self):
-        pass
+    def override_config(self, config):
+        config["ignore"] = [r"^/static/.*", r"^/api/settings/\w+/secret/"]
+        return config
 
     def test_01__is_ignored(self):
-        conf = {"ignore": [r"^/static/.*", r"^/api/settings/\w+/secret/"]}
-
         ignored_routes = [
             "/static/file",
             "/static/",
@@ -24,18 +23,15 @@ class EndpointIgnoreTestCase(BasetTest, FlaskTestCase):
         ]
 
         for s in ignored_routes:
-            self.assertEqual(
-                is_ignored(s, conf), True, "{} needs to be ignored.".format(s)
-            )
+            self.assertEqual(is_ignored(s), True, "{} needs to be ignored.".format(s))
 
         not_ignored_routes = ["/static", "/api/static/", "/api/settings/system/name/"]
 
         for s in not_ignored_routes:
-            self.assertEqual(
-                is_ignored(s, conf), False, "{} cannot be ignored.".format(s)
-            )
+            self.assertEqual(is_ignored(s), False, "{} cannot be ignored.".format(s))
 
     def test_02_ignored_endpoints(self):
+        config = Configuration(self.app)
         ignored_routes = [
             "/static/file",
             "/static/",
@@ -45,14 +41,14 @@ class EndpointIgnoreTestCase(BasetTest, FlaskTestCase):
         for s in ignored_routes:
             self.client.get(s)
 
-        measurements = list(flask_profiler.collection.filter())
-        self.assertEqual(len(measurements), 0)
+        measurements = list(config.collection.filter())
+        assert not measurements
 
         not_ignored_routes = ["/api/settings/personal/name/", "/api/static/"]
         for s in not_ignored_routes:
             print(self.client.get(s))
 
-        measurements = list(flask_profiler.collection.filter())
+        measurements = list(config.collection.filter())
         self.assertEqual(len(measurements), 2)
 
 

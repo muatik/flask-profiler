@@ -39,6 +39,11 @@
               ${pkgs.python3.pkgs.isort}/bin/isort --check .
               mkdir $out
             '';
+            flake8-check = pkgs.runCommand "flake8-check" { } ''
+              cd ${self}
+              ${pkgs.python3.pkgs.flake8}/bin/flake8
+              mkdir $out
+            '';
           };
         });
       supportedSystems = flake-utils.lib.defaultSystems;

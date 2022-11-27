@@ -2,7 +2,12 @@
 import time
 import unittest
 
-from .basetest import BasetTest, flask_profiler, measure
+from flask_testing import TestCase
+
+from flask_profiler import measure
+from flask_profiler.flask_profiler import Configuration
+
+from .basetest import BasetTest
 
 
 def doWait(seconds, **kwargs):
@@ -10,10 +15,7 @@ def doWait(seconds, **kwargs):
     return seconds
 
 
-class MeasurementTest(BasetTest):
-    def setUp(self):
-        flask_profiler.collection.truncate()
-
+class MeasurementTest(BasetTest, TestCase):
     def test_01_returnValue(self):
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 1
@@ -21,14 +23,16 @@ class MeasurementTest(BasetTest):
         self.assertEqual(waitSeconds, result)
 
     def test_02_measurement(self):
+        config = Configuration(self.app)
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 2
-        result = wrapped(waitSeconds)
-        m = list(flask_profiler.collection.filter())[0]
+        wrapped(waitSeconds)
+        m = list(config.collection.filter())[0]
         self.assertEqual(m["name"], "doWait")
         self.assertEqual(float(m["elapsed"]) >= waitSeconds, True)
 
     def test_03_measurement_params(self):
+        config = Configuration(self.app)
         context = {"token": "x"}
         name = "name_of_func"
         method = "invoke"
@@ -36,8 +40,8 @@ class MeasurementTest(BasetTest):
 
         waitSeconds = 1
         kwargs = {"k1": "kval1", "k2": "kval2"}
-        result = wrapped(waitSeconds, **kwargs)
-        m = list(flask_profiler.collection.filter())[0]
+        wrapped(waitSeconds, **kwargs)
+        m = list(config.collection.filter())[0]
         self.assertEqual(m["name"], name)
         self.assertEqual(m["method"], method)
         self.assertEqual(m["args"][0], waitSeconds)
