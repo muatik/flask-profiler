@@ -36,7 +36,7 @@ file = "LICENSE"
 github = "https://github.com/seppeljordan/flask-profiler"
 
 [tool.setuptools]
-packages = ["flask_profiler"]
+packages = ["flask_profiler", "flask_profiler.storage"]
 
 [tool.setuptools.package-data]
 mypkg = [
