@@ -10,9 +10,12 @@ It gives answers to these questions:
 * What causes my slow endpoints? In which context, with what args and kwargs are they slow?
 * How much time did a specific request take?
 
-In short, if you are curious about what your endpoints are doing and what requests they are receiving, give a try to flask-profiler.
+In short, if you are curious about what your endpoints are doing and
+what requests they are receiving, give a try to flask-profiler.
 
-With flask-profiler's web interface, you can monitor all your endpoints' performance and investigate endpoints and received requests by drilling down through filters.
+With flask-profiler's web interface, you can monitor all your
+endpoints' performance and investigate endpoints and received requests
+by drilling down through filters.
 
 ## Screenshots
 
@@ -30,7 +33,8 @@ You can see all the details of a request.
 ![Alt text](resources/filtering_detail_screen.png?raw=true "Request detail")
 
 ## Quick Start
-It is easy to understand flask-profiler going through an example. Let's dive in.
+It is easier to understand flask-profiler going through an
+example. Let's dive in.
 
 Install flask-profiler by pip.
 ```sh
@@ -86,10 +90,10 @@ def staticSomething():
 # In order to active flask-profiler, you have to pass flask
 # app as an argument to flask-profiler.
 # All the endpoints declared so far will be tracked by flask-profiler.
-flask_profiler.init_app(app)
+flask_profiler.Profiler(app)
 
 
-# endpoint declarations after flask_profiler.init_app() will be
+# endpoint declarations after flask_profiler.Profiler().init_app() will be
 # hidden to flask_profiler.
 @app.route('/doSomething', methods=['GET'])
 def doSomething():
@@ -121,9 +125,15 @@ curl http://127.0.0.1:5000/product/123
 curl -X PUT -d arg1=val1 http://127.0.0.1:5000/product/123
 ```
 
-If everything is okay, Flask-profiler will measure these requests. You can see the result heading to http://127.0.0.1:5000/flask-profiler/ or get results as JSON http://127.0.0.1:5000/flask-profiler/api/measurements?sort=elapsed,desc
+If everything is okay, Flask-profiler will measure these requests. You
+can see the result heading to http://127.0.0.1:5000/flask-profiler/ or
+get results as JSON
+http://127.0.0.1:5000/flask-profiler/api/measurements?sort=elapsed,desc
 
-If you like to initialize your extensions in other files or use factory apps pattern, you can also create a instance of the `Profiler` class, this will register all your endpoints once you app run by first time. E.g:
+If you like to initialize your extensions in other files or use
+factory apps pattern, you can also create a instance of the `Profiler`
+class, this will register all your endpoints once you app run by first
+time. E.g:
 
 ```python
 from flask import Flask
@@ -163,10 +173,14 @@ def getProduct(id):
 ```
 
 ## Using with different database system
-You can use flaskprofiler with **SqlLite**, **MongoDB**, **Postgresql**, **Mysql** or **MongoDB** database systems. However, it is easy to support other database systems. If you would like to have others, please go to contribution documentation. (It is really easy.)
+You can use flaskprofiler with **SqlLite**, **MongoDB**,
+**Postgresql**, **Mysql** or **MongoDB** database systems. However, it
+is easy to support other database systems. If you would like to have
+others, please go to contribution documentation. (It is really easy.)
 
 ### SQLite
-In order to use SQLite, just specify it as the value of `storage.engine` directive as follows.
+In order to use SQLite, just specify it as the value of
+`storage.engine` directive as follows.
 
 ```json
 app.config["flask_profiler"] = {
@@ -230,8 +244,9 @@ The other options are listed below.
 ### Sampling
 Control the number of samples taken by flask-profiler
 
-You would want control over how many times should the flask profiler take samples while running in production mode.
-You can supply a function and control the sampling according to your business logic.
+You would want control over how many times should the flask profiler
+take samples while running in production mode.  You can supply a
+function and control the sampling according to your business logic.
 
 Example 1: Sample 1 in 100 times with random numbers
 ```python
@@ -259,7 +274,9 @@ app.config["flask_profiler"] = {
 ```
 
 ### Ignored endpoints
-Flask-profiler will try to track every endpoint defined so far when init_app() is invoked. If you want to exclude some of the endpoints, you can define matching regex for them as follows:
+Flask-profiler will try to track every endpoint defined so far when
+Profiler.init_app() is invoked. If you want to exclude some of the
+endpoints, you can define matching regex for them as follows:
 
 ```python
 app.config["flask_profiler"] = {

@@ -76,7 +76,7 @@ class BasetTest(unittest.TestCase):
         def getPersonalSettingsName():
             return "your personal settings name"
 
-        flask_profiler.init_app(app)
+        flask_profiler.Profiler(app)
 
         @app.route("/api/without/profiler")
         def withoutProfiler():

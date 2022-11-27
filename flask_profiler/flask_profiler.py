@@ -239,34 +239,6 @@ def registerInternalRouters(app):
     app.register_blueprint(fp)
 
 
-def init_app(app):
-    global collection, CONF
-
-    try:
-        CONF = app.config["flask_profiler"]
-    except:
-        try:
-            CONF = app.config["FLASK_PROFILER"]
-        except:
-            raise Exception(
-                "to init flask-profiler, provide "
-                "required config through flask app's config. please refer: "
-                "https://github.com/muatik/flask-profiler"
-            )
-
-    if not CONF.get("enabled", False):
-        return
-
-    collection = storage.getCollection(CONF.get("storage", {}))
-
-    wrapAppEndpoints(app)
-    registerInternalRouters(app)
-
-    basicAuth = CONF.get("basicAuth", None)
-    if not basicAuth or not basicAuth["enabled"]:
-        logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
-
-
 class Profiler(object):
     """Wrapper for extension."""
 
@@ -275,7 +247,31 @@ class Profiler(object):
             self.init_app(app)
 
     def init_app(self, app):
-        init_app(app)
+        global collection, CONF
+
+        try:
+            CONF = app.config["flask_profiler"]
+        except Exception:
+            try:
+                CONF = app.config["FLASK_PROFILER"]
+            except Exception:
+                raise Exception(
+                    "to init flask-profiler, provide "
+                    "required config through flask app's config. please refer: "
+                    "https://github.com/muatik/flask-profiler"
+                )
+
+        if not CONF.get("enabled", False):
+            return
+
+        collection = storage.getCollection(CONF.get("storage", {}))
+
+        wrapAppEndpoints(app)
+        registerInternalRouters(app)
+
+        basicAuth = CONF.get("basicAuth", None)
+        if not basicAuth or not basicAuth["enabled"]:
+            logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
 
 
 def sanatize_kwargs(kwargs):
