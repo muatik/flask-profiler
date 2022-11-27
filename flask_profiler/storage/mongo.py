@@ -13,12 +13,13 @@ class Mongo(BaseStorage):
     "MONGO_URL", "DATABASE" and "COLLECTION".
     """
 
-    def __init__(self, config=None):
+    def __init__(
+        self, mongo_url: str, database_name: str, collection_name: str
+    ) -> None:
         super(Mongo, self).__init__(),
-        self.config = config
-        self.mongo_url = self.config.get("MONGO_URL", "mongodb://localhost")
-        self.database_name = self.config.get("DATABASE", "flask_profiler")
-        self.collection_name = self.config.get("COLLECTION", "measurements")
+        self.mongo_url = mongo_url
+        self.database_name = database_name
+        self.collection_name = collection_name
 
         def createIndex():
             self.collection.ensure_index(

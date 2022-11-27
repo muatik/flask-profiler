@@ -44,11 +44,10 @@ class Measurements(base):
 
 
 class Sqlalchemy(BaseStorage):
-    def __init__(self, config=None):
+    def __init__(self, db_url: str):
         super(Sqlalchemy, self).__init__()
-        self.config = config
         self.db = create_engine(
-            self.config.get("db_url", "sqlite:///flask_profiler.sql"),
+            db_url,
             pool_pre_ping=True,
         )
         self.create_database()
@@ -156,7 +155,7 @@ class Sqlalchemy(BaseStorage):
             session.query(Measurements).delete()
             session.commit()
             return True
-        except:
+        except Exception:
             session.rollback()
             return False
 
@@ -166,7 +165,7 @@ class Sqlalchemy(BaseStorage):
             session.query(Measurements).filter_by(id=measurementId).delete()
             session.commit()
             return True
-        except:
+        except Exception:
             session.rollback()
             return False
 
@@ -238,11 +237,9 @@ class Sqlalchemy(BaseStorage):
         if kwds.get("interval", None) == "daily":
             interval = 3600 * 24  # daily
             dateFormat = "%Y-%m-%d"
-            format = "day"
         else:
             interval = 3600  # hourly
             dateFormat = "%Y-%m-%d %H"
-            format = "hour"
         endedAt, startedAt = filters["endedAt"], filters["startedAt"]
 
         rows = (

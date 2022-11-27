@@ -5,32 +5,102 @@ import logging
 import re
 import time
 from pprint import pprint as pp
+from typing import List, Optional
 from uuid import UUID
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Flask, current_app, g, has_app_context, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 
-from . import storage
-
-CONF = {}
-collection = None
-auth = HTTPBasicAuth()
+from .storage.base import BaseStorage
 
 logger = logging.getLogger("flask-profiler")
 
-_is_initialized = lambda: True if CONF else False
 
+class Configuration:
+    def __init__(self, app: Flask) -> None:
+        self.app = app
 
-@auth.verify_password
-def verify_password(username, password):
-    if "basicAuth" not in CONF or not CONF["basicAuth"]["enabled"]:
-        return True
+    @property
+    def enabled(self) -> bool:
+        return read_config(self.app).get("enabled", False)
 
-    c = CONF["basicAuth"]
-    if username == c["username"] and password == c["password"]:
-        return True
-    logging.warning("flask-profiler authentication failed")
-    return False
+    def sampling_function(self) -> bool:
+        config = read_config(self.app)
+        if "sampling_function" not in config:
+            return True
+        elif not callable(config["sampling_function"]):
+            raise Exception(
+                "if sampling_function is provided to flask-profiler via config, "
+                "it must be callable, refer to: "
+                "https://github.com/muatik/flask-profiler#sampling"
+            )
+        else:
+            return config["sampling_function"]()
+
+    @property
+    def ignore_patterns(self) -> List[str]:
+        return read_config(self.app).get("ignore", [])
+
+    @property
+    def verbose(self) -> bool:
+        return read_config(self.app).get("verbose", False)
+
+    @property
+    def url_prefix(self) -> str:
+        return read_config(self.app).get("endpointRoot", "flask-profiler")
+
+    @property
+    def is_basic_auth_enabled(self) -> bool:
+        return read_config(self.app).get("basicAuth", {}).get("enabled", False)
+
+    @property
+    def basic_auth_username(self) -> str:
+        return read_config(self.app)["basicAuth"]["username"]
+
+    @property
+    def basic_auth_password(self) -> str:
+        return read_config(self.app)["basicAuth"]["passwordb"]
+
+    @property
+    def collection(self) -> BaseStorage:
+        if not has_app_context():
+            return None
+        collection = g.get("flask_profiler_collection")
+        if collection is None:
+            collection = self._create_storage()
+            g.flask_profiler_collection = collection
+        return collection
+
+    def _create_storage(self) -> BaseStorage:
+        conf = read_config(self.app).get("storage", {})
+        engine = conf.get("engine", "")
+        if engine.lower() == "mongodb":
+            from .storage.mongo import Mongo
+
+            return Mongo(
+                mongo_url=conf.get("MONGO_URL", "mongodb://localhost"),
+                database_name=conf.get("DATABASE", "flask_profiler"),
+                collection_name=conf.get("COLLECTION", "measurements"),
+            )
+        elif engine.lower() == "sqlite":
+            from .storage.sqlite import Sqlite
+
+            return Sqlite(
+                sqlite_file=conf.get("FILE", "flask_profiler.sql"),
+                table_name=conf.get("TABLE", "measurements"),
+            )
+        elif engine.lower() == "sqlalchemy":
+            from .storage.sql_alchemy import Sqlalchemy
+
+            db_url = conf.get("db_url", "sqlite:///flask_profiler.sql")
+            return Sqlalchemy(db_url=db_url)
+        else:
+            raise ValueError(
+                (
+                    "flask-profiler requires a valid storage engine but it is"
+                    " missing or wrong. provided engine: {}".format(engine)
+                )
+            )
 
 
 class Measurement(object):
@@ -74,30 +144,24 @@ class Measurement(object):
         self.elapsed = round(self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
-def is_ignored(name, conf):
-    ignore_patterns = conf.get("ignore", [])
-    for pattern in ignore_patterns:
+def is_ignored(name: str) -> bool:
+    config = Configuration(current_app)
+    for pattern in config.ignore_patterns:
         if re.search(pattern, name):
             return True
     return False
 
 
-def measure(f, name, method, context=None):
+def measure(f, name: str, method, context=None):
     logger.debug("{0} is being processed.")
-    if is_ignored(name, CONF):
+    config = Configuration(current_app)
+    if is_ignored(name):
         logger.debug("{0} is ignored.")
         return f
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        if "sampling_function" in CONF and not callable(CONF["sampling_function"]):
-            raise Exception(
-                "if sampling_function is provided to flask-profiler via config, "
-                "it must be callable, refer to: "
-                "https://github.com/muatik/flask-profiler#sampling"
-            )
-
-        if "sampling_function" in CONF and not CONF["sampling_function"]():
+        if not config.sampling_function():
             return f(*args, **kwargs)
 
         measurement = Measurement(name, args, sanatize_kwargs(kwargs), method, context)
@@ -105,13 +169,11 @@ def measure(f, name, method, context=None):
 
         try:
             returnVal = f(*args, **kwargs)
-        except:
-            raise
         finally:
             measurement.stop()
-            if CONF.get("verbose", False):
+            if config.verbose:
                 pp(measurement.__json__())
-            collection.insert(measurement.__json__())
+            config.collection.insert(measurement.__json__())
 
         return returnVal
 
@@ -153,16 +215,14 @@ def profile(*args, **kwargs):
     """
     http endpoint decorator
     """
-    if _is_initialized():
 
-        def wrapper(f):
-            return wrapHttpEndpoint(f)
+    def wrapper(f):
+        return wrapHttpEndpoint(f)
 
-        return wrapper
-    raise Exception("before measuring anything, you need to call init_app()")
+    return wrapper
 
 
-def registerInternalRouters(app):
+def register_internal_routes(app: Flask, url_prefix: str = None) -> None:
     """
     These are the endpoints which are used to display measurements in the
     flask-profiler dashboard.
@@ -172,15 +232,29 @@ def registerInternalRouters(app):
     :param app: Flask application instance
     :return:
     """
-    urlPath = CONF.get("endpointRoot", "flask-profiler")
-
+    config = Configuration(app)
     fp = Blueprint(
         "flask-profiler",
         __name__,
-        url_prefix="/" + urlPath,
+        url_prefix=f"/{config.url_prefix}",
         static_folder="static/dist/",
         static_url_path="/static/dist",
     )
+
+    auth = HTTPBasicAuth()
+
+    @auth.verify_password
+    def verify_password(username, password):
+        if not config.is_basic_auth_enabled:
+            return True
+
+        if (
+            username == config.basic_auth_username
+            and password == config.basic_auth_password
+        ):
+            return True
+        logging.warning("flask-profiler authentication failed")
+        return False
 
     @fp.route("/")
     @auth.login_required
@@ -191,44 +265,44 @@ def registerInternalRouters(app):
     @auth.login_required
     def filterMeasurements():
         args = dict(request.args.items())
-        measurements = collection.filter(args)
+        measurements = config.collection.filter(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/grouped")
     @auth.login_required
     def getMeasurementsSummary():
         args = dict(request.args.items())
-        measurements = collection.getSummary(args)
+        measurements = config.collection.getSummary(args)
         return jsonify({"measurements": list(measurements)})
 
     @fp.route("/api/measurements/<measurementId>")
     @auth.login_required
     def getContext(measurementId):
-        return jsonify(collection.get(measurementId))
+        return jsonify(config.collection.get(measurementId))
 
     @fp.route("/api/measurements/timeseries/")
     @auth.login_required
     def getRequestsTimeseries():
         args = dict(request.args.items())
-        return jsonify({"series": collection.getTimeseries(args)})
+        return jsonify({"series": config.collection.getTimeseries(args)})
 
     @fp.route("/api/measurements/methodDistribution/")
     @auth.login_required
     def getMethodDistribution():
         args = dict(request.args.items())
-        return jsonify({"distribution": collection.getMethodDistribution(args)})
+        return jsonify({"distribution": config.collection.getMethodDistribution(args)})
 
     @fp.route("/db/dumpDatabase")
     @auth.login_required
     def dumpDatabase():
-        response = jsonify({"summary": collection.getSummary()})
+        response = jsonify({"summary": config.collection.getSummary()})
         response.headers["Content-Disposition"] = "attachment; filename=dump.json"
         return response
 
     @fp.route("/db/deleteDatabase")
     @auth.login_required
     def deleteDatabase():
-        response = jsonify({"status": collection.truncate()})
+        response = jsonify({"status": config.collection.truncate()})
         return response
 
     @fp.after_request
@@ -239,7 +313,20 @@ def registerInternalRouters(app):
     app.register_blueprint(fp)
 
 
-class Profiler(object):
+def read_config(app: Optional[Flask] = None):
+    if app is None:
+        app = current_app
+    try:
+        return (
+            app.config.get("flask_profiler")
+            or app.config.get("FLASK_PROFILER")
+            or dict()
+        )
+    except RuntimeError:
+        return {}
+
+
+class Profiler:
     """Wrapper for extension."""
 
     def __init__(self, app=None):
@@ -247,30 +334,15 @@ class Profiler(object):
             self.init_app(app)
 
     def init_app(self, app):
-        global collection, CONF
+        config = Configuration(app)
 
-        try:
-            CONF = app.config["flask_profiler"]
-        except Exception:
-            try:
-                CONF = app.config["FLASK_PROFILER"]
-            except Exception:
-                raise Exception(
-                    "to init flask-profiler, provide "
-                    "required config through flask app's config. please refer: "
-                    "https://github.com/muatik/flask-profiler"
-                )
-
-        if not CONF.get("enabled", False):
+        if not config.enabled:
             return
 
-        collection = storage.getCollection(CONF.get("storage", {}))
-
         wrapAppEndpoints(app)
-        registerInternalRouters(app)
+        register_internal_routes(app)
 
-        basicAuth = CONF.get("basicAuth", None)
-        if not basicAuth or not basicAuth["enabled"]:
+        if not config.is_basic_auth_enabled:
             logging.warning(" * CAUTION: flask-profiler is working without basic auth!")
 
 

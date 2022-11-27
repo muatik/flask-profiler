@@ -1,6 +1,4 @@
-class BaseStorage(object):
-    """docstring for BaseStorage"""
-
+class BaseStorage:
     def __init__(self):
         super(BaseStorage, self).__init__()
 

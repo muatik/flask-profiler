@@ -5,7 +5,6 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
-from timeit import default_timer
 
 from .base import BaseStorage
 
@@ -15,14 +14,10 @@ def formatDate(timestamp, dateFormat):
 
 
 class Sqlite(BaseStorage):
-    """docstring for Sqlite"""
-
-    def __init__(self, config=None):
+    def __init__(self, sqlite_file: str, table_name: str):
         super(Sqlite, self).__init__()
-        self.config = config
-        self.sqlite_file = self.config.get("FILE", "flask_profiler.sql")
-        self.table_name = self.config.get("TABLE", "measurements")
-
+        self.sqlite_file = sqlite_file
+        self.table_name = table_name
         self.startedAt_head = "startedAt"  # name of the column
         self.endedAt_head = "endedAt"  # name of the column
         self.elapsed_head = "elapsed"  # name of the column

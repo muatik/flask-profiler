@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import unittest
+from copy import copy
 from os import environ, path
 
 from flask import Flask
+
+from flask_profiler.flask_profiler import Configuration
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -35,17 +38,17 @@ CONF = _CONFS[environ.get("FLASK_PROFILER_TEST_CONF", "sqlalchemy")]
 
 
 class BasetTest(unittest.TestCase):
-    def setUp(cls):
-        flask_profiler.collection.truncate()
+    def tearDown(self) -> None:
+        config = Configuration(self.app)
+        config.collection.truncate()
+        super().tearDown()
 
-    @classmethod
-    def setUpClass(cls):
-
-        flask_profiler.collection = storage.getCollection(CONF["storage"])
+    def override_config(self, config):
+        return config
 
     def create_app(self):
         app = Flask(__name__)
-        app.config["flask_profiler"] = CONF
+        app.config["flask_profiler"] = self.override_config(copy(CONF))
         app.config["TESTING"] = True
 
         @app.route("/api/people/<firstname>")
@@ -91,13 +94,10 @@ class BasetTest(unittest.TestCase):
 
 
 class BaseTest2(unittest.TestCase):
-    def setUp(cls):
-        flask_profiler.collection.truncate()
-
-    @classmethod
-    def setUpClass(cls):
-
-        flask_profiler.collection = storage.getCollection(CONF["storage"])
+    def tearDown(self) -> None:
+        config = Configuration(self.app)
+        config.collection.truncate()
+        super().tearDown()
 
     def create_app(self):
         app = Flask(__name__)
