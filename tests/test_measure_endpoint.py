@@ -4,11 +4,10 @@ from uuid import uuid4
 
 from flask_testing import TestCase as FlaskTestCase
 
-from .basetest import BasetTest, BaseTest2, flask_profiler
+from .basetest import BaseTest2, BasetTest, flask_profiler
 
 
 class EndpointMeasurementTest(BasetTest, FlaskTestCase):
-
     def tearDown(self):
         pass
 
@@ -44,7 +43,6 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
 
 
 class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
-
     def test_01_profiler(self):
         name = "foo"
         response = self.client.get("/api/people/{}".format(name))
@@ -71,12 +69,10 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
 
     def test_that_routes_with_uuids_get_profiled_correctly(self):
         expected_uuid = uuid4()
-        self.client.get(f'/api/people/by-id/{expected_uuid}')
+        self.client.get(f"/api/people/by-id/{expected_uuid}")
         measurement = list(flask_profiler.collection.filter())[0]
-        self.assertEqual(
-            measurement['kwargs']['id'], str(expected_uuid)
-        )
+        self.assertEqual(measurement["kwargs"]["id"], str(expected_uuid))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

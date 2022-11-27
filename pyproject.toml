@@ -49,3 +49,6 @@ mypkg = [
     "static/dist/*",
     "static/dist/index.html",
 ]
+
+[tool.isort]
+profile = "black"

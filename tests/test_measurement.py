@@ -2,7 +2,7 @@
 import time
 import unittest
 
-from .basetest import BasetTest, measure, flask_profiler
+from .basetest import BasetTest, flask_profiler, measure
 
 
 def doWait(seconds, **kwargs):
@@ -11,7 +11,6 @@ def doWait(seconds, **kwargs):
 
 
 class MeasurementTest(BasetTest):
-
     def setUp(self):
         flask_profiler.collection.truncate()
 
@@ -46,5 +45,6 @@ class MeasurementTest(BasetTest):
         self.assertEqual(m["context"], context)
         self.assertTrue(float(m["elapsed"]) >= waitSeconds)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

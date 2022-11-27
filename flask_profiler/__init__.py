@@ -1,6 +1,2 @@
 # -*- coding: utf-8 -*-
-from .flask_profiler import (
-    measure,
-    profile,
-    init_app,
-    Profiler)
+from .flask_profiler import Profiler, init_app, measure, profile
