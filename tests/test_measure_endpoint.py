@@ -14,13 +14,11 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
     def test_01_return_value(self):
         name = "john"
         response = self.client.get("/api/people/{}".format(name))
-        # converting because in python 3, response data becomes binary not utf-8
         r = response.data.decode("utf-8", "strict")
         self.assertEqual(r, name)
 
     def test_02_without_profiler(self):
         response = self.client.get("/api/without/profiler")
-        # converting because in python 3, response data becomes binary not utf-8
         r = response.data.decode("utf-8", "strict")
 
         self.assertEqual(r, "without profiler")
@@ -29,7 +27,6 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
 
     def test_02_with_profiler(self):
         response = self.client.get("/api/with/profiler/hello?q=1")
-        # converting because in python 3, response data becomes binary not utf-8
         r = response.data.decode("utf-8", "strict")
         self.assertEqual(r, "with profiler")
 

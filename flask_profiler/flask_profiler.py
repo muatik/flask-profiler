@@ -271,13 +271,11 @@ class Profiler(object):
     """Wrapper for extension."""
 
     def __init__(self, app=None):
-        self._init_app = init_app
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
-        init = functools.partial(self._init_app, app)
-        app.before_first_request(init)
+        init_app(app)
 
 
 def sanatize_kwargs(kwargs):
