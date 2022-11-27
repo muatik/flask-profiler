@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-import unittest
 import sys
+import unittest
 from os import environ, path
 
 from flask import Flask
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from flask_profiler import flask_profiler, measure
-from flask_profiler import storage
+from flask_profiler import flask_profiler, measure, storage
 
 _CONFS = {
     "mongodb": {
@@ -17,37 +16,25 @@ _CONFS = {
             "engine": "mongodb",
             "DATABASE": "flask_profiler_test",
             "COLLECTION": "profiler",
-            "MONGO_URL": "mongodb://localhost"
+            "MONGO_URL": "mongodb://localhost",
         },
-        "ignore": [
-            "^/static/.*"
-        ]
+        "ignore": ["^/static/.*"],
     },
     "sqlite": {
         "enabled": True,
-        "storage": {
-            "engine": "sqlite"
-        },
-        "ignore": [
-            "^/static/.*"
-        ]
+        "storage": {"engine": "sqlite"},
+        "ignore": ["^/static/.*"],
     },
     "sqlalchemy": {
         "enabled": True,
-        "storage": {
-            "engine": "sqlalchemy",
-            "db_url": "sqlite:///flask_profiler.sql"
-        },
-        "ignore": [
-            "^/static/.*"
-        ]
-    }
+        "storage": {"engine": "sqlalchemy", "db_url": "sqlite:///flask_profiler.sql"},
+        "ignore": ["^/static/.*"],
+    },
 }
-CONF = _CONFS[environ.get('FLASK_PROFILER_TEST_CONF', 'sqlalchemy')]
+CONF = _CONFS[environ.get("FLASK_PROFILER_TEST_CONF", "sqlalchemy")]
 
 
 class BasetTest(unittest.TestCase):
-
     def setUp(cls):
         flask_profiler.collection.truncate()
 
@@ -59,7 +46,7 @@ class BasetTest(unittest.TestCase):
     def create_app(self):
         app = Flask(__name__)
         app.config["flask_profiler"] = CONF
-        app.config['TESTING'] = True
+        app.config["TESTING"] = True
 
         @app.route("/api/people/<firstname>")
         def sayHello(firstname):
@@ -104,7 +91,6 @@ class BasetTest(unittest.TestCase):
 
 
 class BaseTest2(unittest.TestCase):
-
     def setUp(cls):
         flask_profiler.collection.truncate()
 
@@ -116,7 +102,7 @@ class BaseTest2(unittest.TestCase):
     def create_app(self):
         app = Flask(__name__)
         app.config["flask_profiler"] = CONF
-        app.config['TESTING'] = True
+        app.config["TESTING"] = True
         profiler = flask_profiler.Profiler()
         profiler.init_app(app)
 

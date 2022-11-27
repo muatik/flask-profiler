@@ -1,89 +1,82 @@
 # -*- coding: utf-8 -*-
 import unittest
-from basetest import BaseTest
-from bson.objectid import ObjectId
+
 import arrow
 from app.modules.accounts import Accounts
+from basetest import BaseTest
+from bson.objectid import ObjectId
 
 
 class TestAccount(BaseTest, unittest.TestCase):
 
-    ACCOUNTS = [{
-        "id": None,
-        "fname": "Mustafa",
-        "lname": "Atik",
-        "email": "mm@aasscsaccccmm.com",
-        "gcmId": "code1",
-        "alarms": [
-            {
-                "location": {
-                    "country": "United Kingdom",
-                    "state": "",
-                    "city": "London",
+    ACCOUNTS = [
+        {
+            "id": None,
+            "fname": "Mustafa",
+            "lname": "Atik",
+            "email": "mm@aasscsaccccmm.com",
+            "gcmId": "code1",
+            "alarms": [
+                {
+                    "location": {
+                        "country": "United Kingdom",
+                        "state": "",
+                        "city": "London",
                     },
-                "keywords": [
-                    "speaker",
-                    "scientist",
-                    "developer"
-                ]
-            }, {
-                "location": {
-                    "country": "United Kingdom",
-                    "state": "",
-                    "city": "Manchester",
+                    "keywords": ["speaker", "scientist", "developer"],
+                },
+                {
+                    "location": {
+                        "country": "United Kingdom",
+                        "state": "",
+                        "city": "Manchester",
                     },
-                "keywords": [
-                    "manager"
-                ]
-            }
-        ]
-      }, {
-        "id": None,
-        "fname": "John",
-        "lname": "Smith",
-        "email": "jmm@jaasscsaccccmm.com",
-        "gcmId": "code2",
-        "alarms": [
-            {
-                "location": {
-                    "country": "Ireland",
-                    "state": "",
-                    "city": "Dublin",
+                    "keywords": ["manager"],
+                },
+            ],
+        },
+        {
+            "id": None,
+            "fname": "John",
+            "lname": "Smith",
+            "email": "jmm@jaasscsaccccmm.com",
+            "gcmId": "code2",
+            "alarms": [
+                {
+                    "location": {
+                        "country": "Ireland",
+                        "state": "",
+                        "city": "Dublin",
                     },
-                "keywords": [
-                    "waiter",
-                    "repair"
-                ]
-            }
-        ]
-      }, {
-        "id": None,
-        "fname": "George",
-        "lname": "Mich",
-        "email": "gmm@gaasscsaccccmm.com",
-        "gcmId": "code3",
-        "alarms": [
-            {
-                "location": {
-                    "country": "United Kingdom",
-                    "state": "",
-                    "city": "Manchester",
+                    "keywords": ["waiter", "repair"],
+                }
+            ],
+        },
+        {
+            "id": None,
+            "fname": "George",
+            "lname": "Mich",
+            "email": "gmm@gaasscsaccccmm.com",
+            "gcmId": "code3",
+            "alarms": [
+                {
+                    "location": {
+                        "country": "United Kingdom",
+                        "state": "",
+                        "city": "Manchester",
                     },
-                "keywords": [
-                    "developer"
-                ]
-            }, {
-                "location": {
-                    "country": "United Kingdom",
-                    "state": "",
-                    "city": "London",
+                    "keywords": ["developer"],
+                },
+                {
+                    "location": {
+                        "country": "United Kingdom",
+                        "state": "",
+                        "city": "London",
                     },
-                "keywords": [
-                    "manager"
-                ]
-            }
-        ]
-      }
+                    "keywords": ["manager"],
+                },
+            ],
+        },
     ]
 
     @classmethod
@@ -93,8 +86,8 @@ class TestAccount(BaseTest, unittest.TestCase):
     def test_00_insert(self):
         for account in self.ACCOUNTS:
             record = self.accounts.insert(account)
-            account['id'] = record['id']
-            self.assertIsInstance(record['id'], ObjectId)
+            account["id"] = record["id"]
+            self.assertIsInstance(record["id"], ObjectId)
 
     def test_01_getWithoutFilter(self):
         accountsFound = self.accounts.get(filtering={})
@@ -102,8 +95,8 @@ class TestAccount(BaseTest, unittest.TestCase):
 
     def test_02_getOne(self):
         account = self.ACCOUNTS[0]
-        accountFound = self.accounts.getOne(account['id'])
-        self.assertEqual(account['id'], accountFound['id'])
+        accountFound = self.accounts.getOne(account["id"])
+        self.assertEqual(account["id"], accountFound["id"])
 
     def test_0401_getByLocationFilter(self):
         def doFilter(account, count, countWithState):
@@ -118,7 +111,7 @@ class TestAccount(BaseTest, unittest.TestCase):
             accountsFound = self.accounts.get(filtering=filtering)
             self.assertEqual(count, accountsFound.count())
 
-            filtering['location']['state'] = location["state"].upper()
+            filtering["location"]["state"] = location["state"].upper()
             accountsFound = self.accounts.get(filtering=filtering)
             self.assertEqual(countWithState, accountsFound.count())
 
@@ -127,11 +120,10 @@ class TestAccount(BaseTest, unittest.TestCase):
 
     def test_0402_getByKeywordFilter(self):
         def doFilter(keyword, count):
-            filtering = {
-                "keyword": [keyword]
-            }
+            filtering = {"keyword": [keyword]}
             accountsFound = self.accounts.get(filtering=filtering)
             self.assertEqual(count, accountsFound.count())
+
         doFilter("developer", 2)
         doFilter("scientist", 1)
 
@@ -143,7 +135,7 @@ class TestAccount(BaseTest, unittest.TestCase):
                     "country": location["country"].upper(),
                     "city": location["city"].lower(),
                 },
-                "keyword": [keyword]
+                "keyword": [keyword],
             }
             accountsFound = self.accounts.get(filtering=filtering)
             self.assertEqual(count, accountsFound.count())
@@ -168,10 +160,8 @@ class TestAccount(BaseTest, unittest.TestCase):
                 "country": "France",
                 "state": "",
                 "city": "Paris",
-                },
-            "keywords": [
-                "artist"
-            ]
+            },
+            "keywords": ["artist"],
         }
 
         self.accounts.insertAlarm(account["id"], newAlarm)
@@ -204,5 +194,6 @@ class TestAccount(BaseTest, unittest.TestCase):
         self.accounts.removeStarredJob(account["id"], jobId)
         account = self.accounts.getOne(account["id"])
         self.assertNotIn(jobId, account["jobs"]["starred"])
+
 
 unittest.main()

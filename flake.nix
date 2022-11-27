@@ -30,7 +30,20 @@
             ];
             inputsFrom = [ pkgs.python3.pkgs.flask-profiler ];
           };
-        });
+          checks = {
+            black-check = pkgs.runCommand "black-check" { } ''
+              cd ${self}
+              ${pkgs.python3.pkgs.black}/bin/black --check .
+              mkdir $out
+            '';
+            isort-check = pkgs.runCommand "isort-check" { } ''
+              cd ${self}
+              ${pkgs.python3.pkgs.isort}/bin/isort --check .
+              mkdir $out
+            '';
+          };
+        }
+      );
       supportedSystems = flake-utils.lib.defaultSystems;
       systemIndependent = {
         overlays.default = final: prev: {

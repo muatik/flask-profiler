@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import functools
+import logging
 import re
 import time
+from pprint import pprint as pp
 from uuid import UUID
 
-from pprint import pprint as pp
-
-import logging
-
-from flask import Blueprint
-from flask import jsonify
-from flask import request
+from flask import Blueprint, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 
 from . import storage
@@ -39,6 +35,7 @@ def verify_password(username, password):
 
 class Measurement(object):
     """represents an endpoint measurement"""
+
     DECIMAL_PLACES = 6
 
     def __init__(self, name, args, kwargs, method, context=None):
@@ -61,7 +58,7 @@ class Measurement(object):
             "startedAt": self.startedAt,
             "endedAt": self.endedAt,
             "elapsed": self.elapsed,
-            "context": self.context
+            "context": self.context,
         }
 
     def __str__(self):
@@ -74,8 +71,7 @@ class Measurement(object):
 
     def stop(self):
         self.endedAt = time.time()
-        self.elapsed = round(
-            self.endedAt - self.startedAt, self.DECIMAL_PLACES)
+        self.elapsed = round(self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
 def is_ignored(name, conf):
@@ -94,13 +90,14 @@ def measure(f, name, method, context=None):
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        if 'sampling_function' in CONF and not callable(CONF['sampling_function']):
+        if "sampling_function" in CONF and not callable(CONF["sampling_function"]):
             raise Exception(
                 "if sampling_function is provided to flask-profiler via config, "
                 "it must be callable, refer to: "
-                "https://github.com/muatik/flask-profiler#sampling")
+                "https://github.com/muatik/flask-profiler#sampling"
+            )
 
-        if 'sampling_function' in CONF and not CONF['sampling_function']():
+        if "sampling_function" in CONF and not CONF["sampling_function"]():
             return f(*args, **kwargs)
 
         measurement = Measurement(name, args, sanatize_kwargs(kwargs), method, context)
@@ -131,7 +128,7 @@ def wrapHttpEndpoint(f):
             "body": request.data.decode("utf-8", "strict"),
             "headers": dict(request.headers.items()),
             "func": request.endpoint,
-            "ip": request.remote_addr
+            "ip": request.remote_addr,
         }
         endpoint_name = str(request.url_rule)
         wrapped = measure(f, endpoint_name, request.method, context)
@@ -157,12 +154,12 @@ def profile(*args, **kwargs):
     http endpoint decorator
     """
     if _is_initialized():
+
         def wrapper(f):
             return wrapHttpEndpoint(f)
 
         return wrapper
-    raise Exception(
-        "before measuring anything, you need to call init_app()")
+    raise Exception("before measuring anything, you need to call init_app()")
 
 
 def registerInternalRouters(app):
@@ -178,9 +175,12 @@ def registerInternalRouters(app):
     urlPath = CONF.get("endpointRoot", "flask-profiler")
 
     fp = Blueprint(
-        'flask-profiler', __name__,
+        "flask-profiler",
+        __name__,
         url_prefix="/" + urlPath,
-        static_folder="static/dist/", static_url_path='/static/dist')
+        static_folder="static/dist/",
+        static_url_path="/static/dist",
+    )
 
     @fp.route("/".format(urlPath))
     @auth.login_required
@@ -216,27 +216,24 @@ def registerInternalRouters(app):
     @auth.login_required
     def getMethodDistribution():
         args = dict(request.args.items())
-        return jsonify({
-            "distribution": collection.getMethodDistribution(args)})
+        return jsonify({"distribution": collection.getMethodDistribution(args)})
 
     @fp.route("/db/dumpDatabase")
     @auth.login_required
     def dumpDatabase():
-        response = jsonify({
-            "summary": collection.getSummary()})
+        response = jsonify({"summary": collection.getSummary()})
         response.headers["Content-Disposition"] = "attachment; filename=dump.json"
         return response
 
     @fp.route("/db/deleteDatabase")
     @auth.login_required
     def deleteDatabase():
-        response = jsonify({
-            "status": collection.truncate()})
+        response = jsonify({"status": collection.truncate()})
         return response
 
     @fp.after_request
     def x_robots_tag_header(response):
-        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
         return response
 
     app.register_blueprint(fp)
@@ -254,7 +251,8 @@ def init_app(app):
             raise Exception(
                 "to init flask-profiler, provide "
                 "required config through flask app's config. please refer: "
-                "https://github.com/muatik/flask-profiler")
+                "https://github.com/muatik/flask-profiler"
+            )
 
     if not CONF.get("enabled", False):
         return
@@ -270,7 +268,7 @@ def init_app(app):
 
 
 class Profiler(object):
-    """ Wrapper for extension. """
+    """Wrapper for extension."""
 
     def __init__(self, app=None):
         self._init_app = init_app

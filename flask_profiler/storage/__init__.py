@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import importlib
 import os
 import sys
-import importlib
 from contextlib import contextmanager
 
 from .base import BaseStorage
@@ -25,20 +25,23 @@ def getCollection(conf):
     engine = conf.get("engine", "")
     if engine.lower() == "mongodb":
         from .mongo import Mongo
+
         return Mongo(conf)
     elif engine.lower() == "sqlite":
         from .sqlite import Sqlite
+
         return Sqlite(conf)
     elif engine.lower() == "sqlalchemy":
         from .sql_alchemy import Sqlalchemy
+
         return Sqlalchemy(conf)
     else:
         try:
-            parts = engine.split('.')
-            if len(parts) < 1: # engine must have at least module name and class
+            parts = engine.split(".")
+            if len(parts) < 1:  # engine must have at least module name and class
                 raise ImportError
 
-            module_name = '.'.join(parts[:-1])
+            module_name = ".".join(parts[:-1])
             klass_name = parts[-1]
 
             # we need to make sure that it will be able to find module in your
@@ -52,7 +55,10 @@ def getCollection(conf):
 
         except ImportError:
             raise ValueError(
-                ("flask-profiler requires a valid storage engine but it is"
-                    " missing or wrong. provided engine: {}".format(engine)))
+                (
+                    "flask-profiler requires a valid storage engine but it is"
+                    " missing or wrong. provided engine: {}".format(engine)
+                )
+            )
 
         return storage(conf)
