@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+from os import path
+
+
+def main():
+    subprocess.run(["black", "."])
+    subprocess.run(["isort", "."])
+    nixfmt()
+
+
+def nixfmt():
+    nix_files = [
+        path.join(directory, filename)
+        for (directory, _, filenames) in os.walk(".")
+        for filename in filenames
+        if filename.endswith('.nix')
+    ]
+    for nix_file in nix_files:
+        completed_proc = subprocess.run(
+            ['nixfmt', '--check', 'nix_file'],
+            capture_output=True,
+        )
+        if completed_proc.returncode != 0:
+            subprocess.run(['nixfmt', nix_file])
+
+
+if __name__ == "__main__":
+    main()

@@ -12,21 +12,19 @@
         let
           pkgs = import nixpkgs {
             inherit system;
-            overlays = [self.overlays.default];
+            overlays = [ self.overlays.default ];
           };
         in {
-          packages = {
-            default = pkgs.python3.pkgs.flask-profiler;
-          };
+          packages = { default = pkgs.python3.pkgs.flask-profiler; };
           devShells.default = pkgs.mkShell {
             packages = with pkgs.python3.pkgs; [
-                black
-                coverage
-                flake8
-                isort
-                mypy
-                twine
-                virtualenv
+              black
+              coverage
+              flake8
+              isort
+              mypy
+              twine
+              virtualenv
             ];
             inputsFrom = [ pkgs.python3.pkgs.flask-profiler ];
           };
@@ -42,13 +40,12 @@
               mkdir $out
             '';
           };
-        }
-      );
+        });
       supportedSystems = flake-utils.lib.defaultSystems;
       systemIndependent = {
         overlays.default = final: prev: {
-          pythonPackagesExtensions =
-            prev.pythonPackagesExtensions ++ [ (import nix/pythonPackages.nix) ];
+          pythonPackagesExtensions = prev.pythonPackagesExtensions
+            ++ [ (import nix/pythonPackages.nix) ];
         };
       };
     in systemDependent // systemIndependent;
