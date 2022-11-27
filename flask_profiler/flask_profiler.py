@@ -22,10 +22,10 @@ class Configuration:
 
     @property
     def enabled(self) -> bool:
-        return read_config(self.app).get("enabled", False)
+        return self.read_config().get("enabled", False)
 
     def sampling_function(self) -> bool:
-        config = read_config(self.app)
+        config = self.read_config()
         if "sampling_function" not in config:
             return True
         elif not callable(config["sampling_function"]):
@@ -39,27 +39,27 @@ class Configuration:
 
     @property
     def ignore_patterns(self) -> List[str]:
-        return read_config(self.app).get("ignore", [])
+        return self.read_config().get("ignore", [])
 
     @property
     def verbose(self) -> bool:
-        return read_config(self.app).get("verbose", False)
+        return self.read_config().get("verbose", False)
 
     @property
     def url_prefix(self) -> str:
-        return read_config(self.app).get("endpointRoot", "flask-profiler")
+        return self.read_config().get("endpointRoot", "flask-profiler")
 
     @property
     def is_basic_auth_enabled(self) -> bool:
-        return read_config(self.app).get("basicAuth", {}).get("enabled", False)
+        return self.read_config().get("basicAuth", {}).get("enabled", False)
 
     @property
     def basic_auth_username(self) -> str:
-        return read_config(self.app)["basicAuth"]["username"]
+        return self.read_config()["basicAuth"]["username"]
 
     @property
     def basic_auth_password(self) -> str:
-        return read_config(self.app)["basicAuth"]["passwordb"]
+        return self.read_config()["basicAuth"]["passwordb"]
 
     @property
     def collection(self) -> BaseStorage:
@@ -72,7 +72,7 @@ class Configuration:
         return collection
 
     def _create_storage(self) -> BaseStorage:
-        conf = read_config(self.app).get("storage", {})
+        conf = self.read_config().get("storage", {})
         engine = conf.get("engine", "")
         if engine.lower() == "mongodb":
             from .storage.mongo import Mongo
@@ -101,6 +101,13 @@ class Configuration:
                     " missing or wrong. provided engine: {}".format(engine)
                 )
             )
+
+    def read_config(self):
+        return (
+            self.app.config.get("flask_profiler")
+            or self.app.config.get("FLASK_PROFILER")
+            or dict()
+        )
 
 
 class Measurement(object):
@@ -311,19 +318,6 @@ def register_internal_routes(app: Flask, url_prefix: str = None) -> None:
         return response
 
     app.register_blueprint(fp)
-
-
-def read_config(app: Optional[Flask] = None):
-    if app is None:
-        app = current_app
-    try:
-        return (
-            app.config.get("flask_profiler")
-            or app.config.get("FLASK_PROFILER")
-            or dict()
-        )
-    except RuntimeError:
-        return {}
 
 
 class Profiler:
