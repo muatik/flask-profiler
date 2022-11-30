@@ -1,13 +1,14 @@
 import datetime
 import time
+from typing import Any, Dict
 
 import pymongo
 from bson.objectid import ObjectId
 
-from .base import BaseStorage
+from .base import FilterQuery
 
 
-class Mongo(BaseStorage):
+class Mongo:
     """
     To use this class, you have to provide a config dictionary which contains
     "MONGO_URL", "DATABASE" and "COLLECTION".
@@ -16,7 +17,6 @@ class Mongo(BaseStorage):
     def __init__(
         self, mongo_url: str, database_name: str, collection_name: str
     ) -> None:
-        super(Mongo, self).__init__(),
         self.mongo_url = mongo_url
         self.database_name = database_name
         self.collection_name = collection_name
@@ -32,57 +32,38 @@ class Mongo(BaseStorage):
                 ]
             )
 
-        self.client = pymongo.MongoClient(self.mongo_url)
+        self.client: pymongo.MongoClient = pymongo.MongoClient(self.mongo_url)
         self.db = self.client[self.database_name]
         self.collection = self.db[self.collection_name]
         createIndex()
 
-    def filter(self, filtering={}):
-        query = {}
-        limit = int(filtering.get("limit", 100000))
-        skip = int(filtering.get("skip", 0))
-        sort = filtering.get("sort", "endedAt,desc").split(",")
-
-        startedAt = datetime.datetime.fromtimestamp(
-            float(filtering.get("startedAt", time.time() - 3600 * 24 * 7))
-        )
-        endedAt = datetime.datetime.fromtimestamp(
-            float(filtering.get("endedAt", time.time()))
-        )
-        elapsed = float(filtering.get("elapsed", 0))
-        name = filtering.get("name", None)
-        method = filtering.get("method", None)
-        args = filtering.get("args", None)
-        kwargs = filtering.get("kwargs", None)
-
-        if sort[1] == "desc":
+    def filter(self, criteria: FilterQuery):
+        query: Dict[str, Any] = {}
+        if criteria.sort[1] == "desc":
             sort_dir = pymongo.DESCENDING
         else:
             sort_dir = pymongo.ASCENDING
 
-        if name:
-            query["name"] = name
-        if method:
-            query["method"] = method
-        if endedAt:
-            query["endedAt"] = {"$lte": endedAt}
-        if startedAt:
-            query["startedAt"] = {"$gt": startedAt}
-        if elapsed:
-            query["elapsed"] = {"$gte": elapsed}
-        if args:
-            query["args"] = args
-        if kwargs:
-            query["kwargs"] = kwargs
-
-        if limit:
-            cursor = self.collection.find(query).sort(sort[0], sort_dir).skip(skip)
+        if criteria.name:
+            query["name"] = criteria.name
+        if criteria.method:
+            query["method"] = criteria.method
+        if criteria.endedAt:
+            query["endedAt"] = {"$lte": criteria.endedAt}
+        if criteria.startedAt:
+            query["startedAt"] = {"$gt": criteria.startedAt}
+        if criteria.elapsed:
+            query["elapsed"] = {"$gte": criteria.elapsed}
+        if criteria.args:
+            query["args"] = criteria.args
+        if criteria.kwargs:
+            query["kwargs"] = criteria.kwargs
         else:
             cursor = (
                 self.collection.find(query)
-                .sort(sort[0], sort_dir)
-                .skip(skip)
-                .limit(limit)
+                .sort(criteria.sort[0], sort_dir)
+                .skip(criteria.skip)
+                .limit(criteria.limit)
             )
         return (self.clearify(record) for record in cursor)
 

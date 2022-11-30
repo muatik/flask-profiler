@@ -7,16 +7,16 @@ from sqlalchemy import Column, Integer, Numeric, Text, create_engine, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from .base import BaseStorage
+from .base import FilterQuery
 
-base = declarative_base()
+Base = declarative_base()
 
 
 def formatDate(timestamp, dateFormat):
     return datetime.fromtimestamp(timestamp).strftime(dateFormat)
 
 
-class Measurements(base):
+class Measurements(Base):  # type: ignore
     __tablename__ = "flask_profiler_measurements"
 
     id = Column(Integer, primary_key=True)
@@ -43,20 +43,16 @@ class Measurements(base):
         )
 
 
-class Sqlalchemy(BaseStorage):
+class Sqlalchemy:
     def __init__(self, db_url: str):
-        super(Sqlalchemy, self).__init__()
         self.db = create_engine(
             db_url,
             pool_pre_ping=True,
         )
         self.create_database()
 
-    def __enter__(self):
-        return self
-
     def create_database(self):
-        base.metadata.create_all(self.db)
+        Base.metadata.create_all(self.db)
 
     def insert(self, kwds):
         endedAt = int(kwds.get("endedAt", None))
@@ -110,28 +106,26 @@ class Sqlalchemy(BaseStorage):
         filters["limit"] = int(kwargs.get("limit", 100))
         return filters
 
-    def filter(self, kwds={}):
-        # Find Operation
-        f = Sqlalchemy.getFilters(kwds)
+    def filter(self, criteria: FilterQuery):
         session = sessionmaker(self.db)()
         query = session.query(Measurements)
-
-        if f["endedAt"]:
-            query = query.filter(Measurements.endedAt <= f["endedAt"])
-        if f["startedAt"]:
-            query = query.filter(Measurements.startedAt >= f["startedAt"])
-        if f["elapsed"]:
-            query = query.filter(Measurements.elapsed >= f["elapsed"])
-        if f["method"]:
-            query = query.filter(Measurements.method == f["method"])
-        if f["name"]:
-            query = query.filter(Measurements.name == f["name"])
-
-        if f["sort"][1] == "desc":
-            query = query.order_by(getattr(Measurements, f["sort"][0]).desc())
+        if criteria.endedAt:
+            query = query.filter(Measurements.endedAt <= criteria.endedAt.timestamp())
+        if criteria.startedAt:
+            query = query.filter(
+                Measurements.startedAt >= criteria.startedAt.timestamp()
+            )
+        if criteria.elapsed:
+            query = query.filter(Measurements.elapsed >= criteria.elapsed)
+        if criteria.method:
+            query = query.filter(Measurements.method == criteria.method)
+        if criteria.name:
+            query = query.filter(Measurements.name == criteria.name)
+        if criteria.sort[1] == "desc":
+            query = query.order_by(getattr(Measurements, criteria.sort[0]).desc())
         else:
-            query = query.order_by(getattr(Measurements, f["sort"][0]).asc())
-        rows = query.limit(f["limit"]).offset(f["skip"])
+            query = query.order_by(getattr(Measurements, criteria.sort[0]).asc())
+        rows = query.limit(criteria.limit).offset(criteria.skip)
         return (Sqlalchemy.jsonify_row(row) for row in rows)
 
     @staticmethod
@@ -289,6 +283,9 @@ class Sqlalchemy(BaseStorage):
         for row in rows:
             results[row[0]] = row[1]
         return results
+
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.db

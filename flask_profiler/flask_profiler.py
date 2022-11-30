@@ -4,6 +4,7 @@ import functools
 import logging
 import re
 import time
+from datetime import datetime
 from pprint import pprint as pp
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from flask import Blueprint, Flask, current_app, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 
 from .configuration import Configuration
+from .storage.base import FilterQuery
 
 logger = logging.getLogger("flask-profiler")
 auth = HTTPBasicAuth()
@@ -50,7 +52,8 @@ def index():
 def filterMeasurements():
     config = Configuration(current_app)
     args = dict(request.args.items())
-    measurements = config.collection.filter(args)
+    query = parse_filter(args)
+    measurements = config.collection.filter(query)
     return jsonify({"measurements": list(measurements)})
 
 
@@ -144,11 +147,9 @@ class Measurement:
         # we use default_timer to get the best clock available.
         # see: http://stackoverflow.com/a/25823885/672798
         self.startedAt = time.time()
-        print(self.startedAt)
 
     def stop(self):
         self.endedAt = time.time()
-        print(self.endedAt)
         self.elapsed = round(self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
@@ -256,3 +257,35 @@ def sanatize_kwargs(kwargs):
         if isinstance(value, UUID):
             kwargs[key] = str(value)
     return kwargs
+
+
+def parse_filter(arguments=None) -> FilterQuery:
+    if arguments is None:
+        arguments = dict()
+    limit = int(arguments.get("limit", 100))
+    skip = int(arguments.get("skip", 0))
+    sort = tuple(str(arguments.get("sort", "endedAt,desc")).split(","))
+    sort = (
+        sort[0],
+        sort[1],
+    )
+    startedAt = datetime.fromtimestamp(
+        float(arguments.get("startedAt", time.time() - 3600 * 24 * 7))
+    )
+    endedAt = datetime.fromtimestamp(float(arguments.get("endedAt", time.time())))
+    name = arguments.get("name", None)
+    method = arguments.get("method", None)
+    args = arguments.get("args", None)
+    kwargs = arguments.get("kwargs", None)
+    query = FilterQuery(
+        limit=limit,
+        skip=skip,
+        sort=sort,
+        startedAt=startedAt,
+        endedAt=endedAt,
+        name=name,
+        method=method,
+        args=args,
+        kwargs=kwargs,
+    )
+    return query

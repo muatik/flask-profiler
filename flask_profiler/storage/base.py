@@ -1,18 +1,36 @@
-class BaseStorage:
-    def __init__(self):
-        super(BaseStorage, self).__init__()
+from __future__ import annotations
 
-    def filter(self, criteria):
-        raise Exception("Not implemented Error")
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Protocol, Tuple
+
+
+class BaseStorage(Protocol):
+    def filter(self, criteria: FilterQuery):
+        ...
 
     def getSummary(self, criteria):
-        raise Exception("Not implemented Error")
+        ...
 
     def insert(self, measurement):
-        raise Exception("Not implemented Error")
+        ...
 
     def delete(self, measurementId):
-        raise Exception("Not implemented Error")
+        ...
 
     def truncate(self):
-        raise Exception("Not implemented Error")
+        ...
+
+
+@dataclass
+class FilterQuery:
+    limit: int
+    skip: int
+    sort: Tuple[str, str]
+    startedAt: Optional[datetime] = None
+    endedAt: Optional[datetime] = None
+    elapsed: Optional[float] = None
+    name: Optional[str] = None
+    method: Optional[str] = None
+    args: Optional[List[Any]] = None
+    kwargs: Optional[Dict[str, Any]] = None
