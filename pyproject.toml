@@ -29,6 +29,10 @@ keywords = [
     "profiler", "flask", "performance", "optimization"
 ]
 
+[project.optional-dependencies]
+mongodb = ["pymongo"]
+sqlalchemy = ["sqlalchemy"]
+
 [project.license]
 file = "LICENSE"
 
@@ -57,3 +61,7 @@ profile = "black"
 filterwarnings = [
     'ignore:Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively, and SQLAlchemy must convert from floating point - rounding errors and other issues may occur.',
 ]
+
+[[tool.mypy.overrides]]
+module = ["pymongo", "bson.*", "sqlalchemy.*", "flask_httpauth", "flask_testing"]
+ignore_missing_imports = true

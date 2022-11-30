@@ -1,21 +1,18 @@
 import json
 import sqlite3
-
-# from time import perf_counter
 import threading
 import time
 from datetime import datetime
 
-from .base import BaseStorage
+from .base import FilterQuery
 
 
 def formatDate(timestamp, dateFormat):
     return datetime.fromtimestamp(timestamp).strftime(dateFormat)
 
 
-class Sqlite(BaseStorage):
+class Sqlite:
     def __init__(self, sqlite_file: str, table_name: str):
-        super(Sqlite, self).__init__()
         self.sqlite_file = sqlite_file
         self.table_name = table_name
         self.startedAt_head = "startedAt"  # name of the column
@@ -37,11 +34,8 @@ class Sqlite(BaseStorage):
             if "already exists" not in str(e):
                 raise e
 
-    def __enter__(self):
-        return self
-
     @staticmethod
-    def getFilters(kwargs):
+    def _get_filters(kwargs):
         filters = {}
         filters["sort"] = kwargs.get("sort", "endedAt,desc").split(",")
 
@@ -130,7 +124,7 @@ class Sqlite(BaseStorage):
             self.connection.commit()
 
     def getTimeseries(self, kwds={}):
-        filters = Sqlite.getFilters(kwds)
+        filters = Sqlite._get_filters(kwds)
 
         if kwds.get("interval", None) == "daily":
             interval = 3600 * 24  # daily
@@ -166,7 +160,7 @@ class Sqlite(BaseStorage):
     def getMethodDistribution(self, kwds=None):
         if not kwds:
             kwds = {}
-        f = Sqlite.getFilters(kwds)
+        f = Sqlite._get_filters(kwds)
         endedAt, startedAt = f["endedAt"], f["startedAt"]
         conditions = "where endedAt<={0} AND startedAt>={1} ".format(endedAt, startedAt)
 
@@ -187,22 +181,23 @@ class Sqlite(BaseStorage):
             results[row[0]] = row[1]
         return results
 
-    def filter(self, kwds={}):
-        # Find Operation
-        f = Sqlite.getFilters(kwds)
-
+    def filter(self, criteria: FilterQuery):
         conditions = "WHERE 1=1 AND "
 
-        if f["endedAt"]:
-            conditions = conditions + "endedAt<={0} AND ".format(f["endedAt"])
-        if f["startedAt"]:
-            conditions = conditions + "startedAt>={0} AND ".format(f["startedAt"])
-        if f["elapsed"]:
-            conditions = conditions + "elapsed>={0} AND ".format(f["elapsed"])
-        if f["method"]:
-            conditions = conditions + 'method="{0}" AND '.format(f["method"])
-        if f["name"]:
-            conditions = conditions + 'name="{0}" AND '.format(f["name"])
+        if criteria.endedAt:
+            conditions = conditions + "endedAt<={0} AND ".format(
+                criteria.endedAt.timestamp()
+            )
+        if criteria.startedAt:
+            conditions = conditions + "startedAt>={0} AND ".format(
+                criteria.startedAt.timestamp()
+            )
+        if criteria.elapsed:
+            conditions = conditions + "elapsed>={0} AND ".format(criteria.elapsed)
+        if criteria.method:
+            conditions = conditions + 'method="{0}" AND '.format(criteria.method)
+        if criteria:
+            conditions = conditions + 'name="{0}" AND '.format(criteria.name)
 
         conditions = conditions.rstrip(" AND")
 
@@ -212,10 +207,10 @@ class Sqlite(BaseStorage):
             limit {limit} OFFSET {skip} """.format(
                 table_name=self.table_name,
                 conditions=conditions,
-                sort_field=f["sort"][0],
-                sort_direction=f["sort"][1],
-                limit=f["limit"],
-                skip=f["skip"],
+                sort_field=criteria.sort[0],
+                sort_direction=criteria.sort[1],
+                limit=criteria.limit,
+                skip=criteria.skip,
             )
 
             self.cursor.execute(sql)
@@ -266,7 +261,7 @@ class Sqlite(BaseStorage):
         return data
 
     def getSummary(self, kwds={}):
-        filters = Sqlite.getFilters(kwds)
+        filters = Sqlite._get_filters(kwds)
 
         conditions = "WHERE 1=1 and "
 
@@ -311,6 +306,9 @@ class Sqlite(BaseStorage):
                 }
             )
         return result
+
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self.connection.close()
