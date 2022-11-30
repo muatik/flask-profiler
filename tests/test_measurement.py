@@ -4,7 +4,7 @@ import unittest
 
 from flask_testing import TestCase
 
-from flask_profiler.flask_profiler import Configuration, measure, parse_filter
+from flask_profiler.flask_profiler import Configuration, DependencyInjector, measure
 
 from .basetest import BasetTest
 
@@ -15,6 +15,11 @@ def doWait(seconds, **kwargs):
 
 
 class MeasurementTest(BasetTest, TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        injector = DependencyInjector()
+        self.controller = injector.get_filter_controller()
+
     def test_01_returnValue(self):
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 1
@@ -26,7 +31,7 @@ class MeasurementTest(BasetTest, TestCase):
         wrapped = measure(doWait, "doWait", "call", context=None)
         waitSeconds = 2
         wrapped(waitSeconds)
-        m = list(config.collection.filter(parse_filter()))[0]
+        m = list(config.collection.filter(self.controller.parse_filter()))[0]
         self.assertEqual(m["name"], "doWait")
         self.assertEqual(float(m["elapsed"]) >= waitSeconds, True)
 
@@ -40,7 +45,7 @@ class MeasurementTest(BasetTest, TestCase):
         waitSeconds = 1
         kwargs = {"k1": "kval1", "k2": "kval2"}
         wrapped(waitSeconds, **kwargs)
-        m = list(config.collection.filter(parse_filter()))[0]
+        m = list(config.collection.filter(self.controller.parse_filter()))[0]
         self.assertEqual(m["name"], name)
         self.assertEqual(m["method"], method)
         self.assertEqual(m["args"][0], waitSeconds)
