@@ -49,9 +49,9 @@ class Mongo:
         if criteria.method:
             query["method"] = criteria.method
         if criteria.endedAt:
-            query["endedAt"] = {"$lte": criteria.endedAt}
+            query["endedAt"] = {"$lte": criteria.endedAt.timestamp()}
         if criteria.startedAt:
-            query["startedAt"] = {"$gt": criteria.startedAt}
+            query["startedAt"] = {"$gt": criteria.startedAt.timestamp()}
         if criteria.elapsed:
             query["elapsed"] = {"$gte": criteria.elapsed}
         if criteria.args:
@@ -90,31 +90,20 @@ class Mongo:
             return True
         return False
 
-    def getSummary(self, filtering={}):
-        match_condition = {}
-        endedAt = datetime.datetime.fromtimestamp(
-            float(filtering.get("endedAt", time.time()))
-        )
-        startedAt = datetime.datetime.fromtimestamp(
-            float(filtering.get("startedAt", time.time() - 3600 * 24 * 7))
-        )
-        elapsed = filtering.get("elapsed", None)
-        name = filtering.get("name", None)
-        method = filtering.get("method", None)
-        sort = filtering.get("sort", "count,desc").split(",")
+    def getSummary(self, criteria: FilterQuery):
+        match_condition: Dict[str, Any] = {}
+        if criteria.name:
+            match_condition["name"] = criteria.name
+        if criteria.method:
+            match_condition["method"] = criteria.method
+        if criteria.endedAt:
+            match_condition["endedAt"] = {"$lte": criteria.endedAt.timestamp()}
+        if criteria.startedAt:
+            match_condition["startedAt"] = {"$gt": criteria.startedAt.timestamp()}
+        if criteria.elapsed:
+            match_condition["elapsed"] = {"$gte": criteria.elapsed}
 
-        if name:
-            match_condition["name"] = name
-        if method:
-            match_condition["method"] = method
-        if endedAt:
-            match_condition["endedAt"] = {"$lte": endedAt}
-        if startedAt:
-            match_condition["startedAt"] = {"$gt": startedAt}
-        if elapsed:
-            match_condition["elapsed"] = {"$gte": elapsed}
-
-        if sort[1] == "desc":
+        if criteria.sort[1] == "desc":
             sort_dir = -1
         else:
             sort_dir = 1
@@ -142,7 +131,7 @@ class Mongo:
                         "avgElapsed": 1,
                     }
                 },
-                {"$sort": {sort[0]: sort_dir}},
+                {"$sort": {criteria.sort[0]: sort_dir}},
             ]
         )
 

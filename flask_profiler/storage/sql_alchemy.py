@@ -1,5 +1,4 @@
 import json
-import time
 from datetime import datetime
 from decimal import ROUND_UP, Decimal
 
@@ -81,31 +80,6 @@ class Sqlalchemy:
         )
         session.commit()
 
-    @staticmethod
-    def getFilters(kwargs):
-        filters = {}
-        filters["sort"] = kwargs.get("sort", "endedAt,desc").split(",")
-
-        # because inserting and filtering may take place at the same moment,
-        # a very little increment(0.5) is needed to find inserted
-        # record by sql.
-        filters["endedAt"] = float(kwargs.get("endedAt", time.time() + 0.5))
-        filters["startedAt"] = float(
-            kwargs.get("startedAt", time.time() - 3600 * 24 * 7)
-        )
-
-        filters["elapsed"] = kwargs.get("elapsed", None)
-        filters["method"] = kwargs.get("method", None)
-        filters["name"] = kwargs.get("name", None)
-        filters["args"] = json.dumps(
-            list(kwargs.get("args", ()))
-        )  # tuple -> list -> json
-        filters["kwargs"] = json.dumps(kwargs.get("kwargs", ()))
-        filters["sort"] = kwargs.get("sort", "endedAt,desc").split(",")
-        filters["skip"] = int(kwargs.get("skip", 0))
-        filters["limit"] = int(kwargs.get("limit", 100))
-        return filters
-
     def filter(self, criteria: FilterQuery):
         session = sessionmaker(self.db)()
         query = session.query(Measurements)
@@ -163,8 +137,7 @@ class Sqlalchemy:
             session.rollback()
             return False
 
-    def getSummary(self, kwds={}):
-        filters = Sqlalchemy.getFilters(kwds)
+    def getSummary(self, criteria: FilterQuery):
         session = sessionmaker(self.db)()
         count = func.count(Measurements.id).label("count")
         min_elapsed = func.min(Measurements.elapsed).label("minElapsed")
@@ -178,37 +151,38 @@ class Sqlalchemy:
             max_elapsed,
             avg_elapsed,
         )
-
-        if filters["startedAt"]:
-            query = query.filter(Measurements.startedAt >= filters["startedAt"])
-        if filters["endedAt"]:
-            query = query.filter(Measurements.endedAt <= filters["endedAt"])
-        if filters["elapsed"]:
-            query = query.filter(Measurements.elapsed >= filters["elapsed"])
+        if criteria.startedAt:
+            query = query.filter(
+                Measurements.startedAt >= criteria.startedAt.timestamp()
+            )
+        if criteria.endedAt:
+            query = query.filter(Measurements.endedAt <= criteria.endedAt)
+        if criteria.elapsed:
+            query = query.filter(Measurements.elapsed >= criteria.elapsed)
 
         query = query.group_by(Measurements.method, Measurements.name)
-        if filters["sort"][1] == "desc":
-            if filters["sort"][0] == "count":
+        if criteria.sort[1] == "desc":
+            if criteria.sort[0] == "count":
                 query = query.order_by(count.desc())
-            elif filters["sort"][0] == "minElapsed":
+            elif criteria.sort[0] == "minElapsed":
                 query = query.order_by(min_elapsed.desc())
-            elif filters["sort"][0] == "maxElapsed":
+            elif criteria.sort[0] == "maxElapsed":
                 query = query.order_by(max_elapsed.desc())
-            elif filters["sort"][0] == "avgElapsed":
+            elif criteria.sort[0] == "avgElapsed":
                 query = query.order_by(avg_elapsed.desc())
             else:
-                query = query.order_by(getattr(Measurements, filters["sort"][0]).desc())
+                query = query.order_by(getattr(Measurements, criteria.sort[0]).desc())
         else:
-            if filters["sort"][0] == "count":
+            if criteria.sort[0] == "count":
                 query = query.order_by(count.asc())
-            elif filters["sort"][0] == "minElapsed":
+            elif criteria.sort[0] == "minElapsed":
                 query = query.order_by(min_elapsed.asc())
-            elif filters["sort"][0] == "maxElapsed":
+            elif criteria.sort[0] == "maxElapsed":
                 query = query.order_by(max_elapsed.asc())
-            elif filters["sort"][0] == "avgElapsed":
+            elif criteria.sort[0] == "avgElapsed":
                 query = query.order_by(avg_elapsed.asc())
             else:
-                query = query.order_by(getattr(Measurements, filters["sort"][0]).asc())
+                query = query.order_by(getattr(Measurements, criteria.sort[0]).asc())
         rows = query.all()
 
         result = []

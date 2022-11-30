@@ -9,7 +9,7 @@ class BaseStorage(Protocol):
     def filter(self, criteria: FilterQuery):
         ...
 
-    def getSummary(self, criteria):
+    def getSummary(self, criteria: FilterQuery):
         ...
 
     def insert(self, measurement):

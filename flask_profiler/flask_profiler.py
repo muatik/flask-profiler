@@ -64,9 +64,11 @@ def filterMeasurements():
 @auth.login_required
 def getMeasurementsSummary():
     injector = DependencyInjector()
+    controller = injector.get_filter_controller()
     config = injector.get_configuration()
     args = dict(request.args.items())
-    measurements = config.collection.getSummary(args)
+    query = controller.parse_filter(args)
+    measurements = config.collection.getSummary(query)
     return jsonify({"measurements": list(measurements)})
 
 

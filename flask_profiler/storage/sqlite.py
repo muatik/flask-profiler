@@ -1,7 +1,6 @@
 import json
 import sqlite3
 import threading
-import time
 from datetime import datetime
 
 from .base import FilterQuery
@@ -33,31 +32,6 @@ class Sqlite:
         except sqlite3.OperationalError as e:
             if "already exists" not in str(e):
                 raise e
-
-    @staticmethod
-    def _get_filters(kwargs):
-        filters = {}
-        filters["sort"] = kwargs.get("sort", "endedAt,desc").split(",")
-
-        # because inserting and filtering may take place at the same moment,
-        # a very little increment(0.5) is needed to find inserted
-        # record by sql.
-        filters["endedAt"] = float(kwargs.get("endedAt", time.time() + 0.5))
-        filters["startedAt"] = float(
-            kwargs.get("startedAt", time.time() - 3600 * 24 * 7)
-        )
-
-        filters["elapsed"] = kwargs.get("elapsed", None)
-        filters["method"] = kwargs.get("method", None)
-        filters["name"] = kwargs.get("name", None)
-        filters["args"] = json.dumps(
-            list(kwargs.get("args", ()))
-        )  # tuple -> list -> json
-        filters["kwargs"] = json.dumps(kwargs.get("kwargs", ()))
-        filters["sort"] = kwargs.get("sort", "endedAt,desc").split(",")
-        filters["skip"] = int(kwargs.get("skip", 0))
-        filters["limit"] = int(kwargs.get("limit", 100))
-        return filters
 
     def create_database(self):
         with self.lock:
@@ -260,18 +234,18 @@ class Sqlite:
 
         return data
 
-    def getSummary(self, kwds={}):
-        filters = Sqlite._get_filters(kwds)
-
+    def getSummary(self, criteria: FilterQuery):
         conditions = "WHERE 1=1 and "
-
-        if filters["startedAt"]:
-            conditions = conditions + "startedAt>={0} AND ".format(filters["startedAt"])
-        if filters["endedAt"]:
-            conditions = conditions + "endedAt<={0} AND ".format(filters["endedAt"])
-        if filters["elapsed"]:
-            conditions = conditions + "elapsed>={0} AND".format(filters["elapsed"])
-
+        if criteria.startedAt:
+            conditions = conditions + "startedAt>={0} AND ".format(
+                criteria.startedAt.timestamp()
+            )
+        if criteria.endedAt:
+            conditions = conditions + "endedAt<={0} AND ".format(
+                criteria.endedAt.timestamp()
+            )
+        if criteria.elapsed:
+            conditions = conditions + "elapsed>={0} AND".format(criteria.elapsed)
         conditions = conditions.rstrip(" AND")
         with self.lock:
             sql = """SELECT
@@ -286,13 +260,11 @@ class Sqlite:
                 """.format(
                 table_name=self.table_name,
                 conditions=conditions,
-                sort_field=filters["sort"][0],
-                sort_direction=filters["sort"][1],
+                sort_field=criteria.sort[0],
+                sort_direction=criteria.sort[1],
             )
-
             self.cursor.execute(sql)
             rows = self.cursor.fetchall()
-
         result = []
         for r in rows:
             result.append(
