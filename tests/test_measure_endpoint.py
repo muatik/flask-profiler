@@ -4,12 +4,17 @@ from uuid import uuid4
 
 from flask_testing import TestCase as FlaskTestCase
 
-from flask_profiler.flask_profiler import Configuration, parse_filter
+from flask_profiler.flask_profiler import Configuration, DependencyInjector
 
 from .basetest import BaseTest2, BasetTest
 
 
 class EndpointMeasurementTest(BasetTest, FlaskTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        injector = DependencyInjector()
+        self.controller = injector.get_filter_controller()
+
     def test_01_return_value(self):
         name = "john"
         response = self.client.get("/api/people/{}".format(name))
@@ -22,7 +27,7 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
         r = response.data.decode("utf-8", "strict")
 
         self.assertEqual(r, "without profiler")
-        measurements = list(config.collection.filter(parse_filter()))
+        measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 0)
 
     def test_02_with_profiler(self):
@@ -31,7 +36,7 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
         r = response.data.decode("utf-8", "strict")
         self.assertEqual(r, "with profiler")
 
-        measurements = list(config.collection.filter(parse_filter()))
+        measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 1)
         m = measurements[0]
         self.assertEqual(m["name"], "/api/with/profiler/<message>")
@@ -41,11 +46,16 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
 
 
 class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        injector = DependencyInjector()
+        self.controller = injector.get_filter_controller()
+
     def test_01_profiler(self):
         config = Configuration(self.app)
         name = "foo"
         response = self.client.get("/api/people/{}".format(name))
-        measurements = list(config.collection.filter(parse_filter()))
+        measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 1)
         r = response.data.decode("utf-8", "strict")
         self.assertEqual(r, name)
@@ -55,7 +65,7 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         self.client.get("/api/people/foo")
         self.client.get("/api/people/foo")
         self.client.get("/api/with/profiler/hello?q=2")
-        measurements = list(config.collection.filter(parse_filter()))
+        measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 3)
         test_flag = False
         for list_element in measurements:
@@ -71,7 +81,7 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         config = Configuration(self.app)
         expected_uuid = uuid4()
         self.client.get(f"/api/people/by-id/{expected_uuid}")
-        measurement = list(config.collection.filter(parse_filter()))[0]
+        measurement = list(config.collection.filter(self.controller.parse_filter()))[0]
         self.assertEqual(measurement["kwargs"]["id"], str(expected_uuid))
 
 

@@ -4,15 +4,15 @@ import functools
 import logging
 import re
 import time
-from datetime import datetime
 from pprint import pprint as pp
+from typing import Optional
 from uuid import UUID
 
 from flask import Blueprint, Flask, current_app, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 
 from .configuration import Configuration
-from .storage.base import FilterQuery
+from .controllers.filter_controller import FilterController
 
 logger = logging.getLogger("flask-profiler")
 auth = HTTPBasicAuth()
@@ -28,7 +28,8 @@ flask_profiler = Blueprint(
 
 @auth.verify_password
 def verify_password(username, password):
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     if not config.is_basic_auth_enabled:
         return True
 
@@ -50,9 +51,11 @@ def index():
 @flask_profiler.route("/api/measurements/")
 @auth.login_required
 def filterMeasurements():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    controller = injector.get_filter_controller()
+    config = injector.get_configuration()
     args = dict(request.args.items())
-    query = parse_filter(args)
+    query = controller.parse_filter(args)
     measurements = config.collection.filter(query)
     return jsonify({"measurements": list(measurements)})
 
@@ -60,7 +63,8 @@ def filterMeasurements():
 @flask_profiler.route("/api/measurements/grouped")
 @auth.login_required
 def getMeasurementsSummary():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     args = dict(request.args.items())
     measurements = config.collection.getSummary(args)
     return jsonify({"measurements": list(measurements)})
@@ -69,14 +73,16 @@ def getMeasurementsSummary():
 @flask_profiler.route("/api/measurements/<measurementId>")
 @auth.login_required
 def getContext(measurementId):
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     return jsonify(config.collection.get(measurementId))
 
 
 @flask_profiler.route("/api/measurements/timeseries/")
 @auth.login_required
 def getRequestsTimeseries():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     args = dict(request.args.items())
     return jsonify({"series": config.collection.getTimeseries(args)})
 
@@ -84,7 +90,8 @@ def getRequestsTimeseries():
 @flask_profiler.route("/api/measurements/methodDistribution/")
 @auth.login_required
 def getMethodDistribution():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     args = dict(request.args.items())
     return jsonify({"distribution": config.collection.getMethodDistribution(args)})
 
@@ -92,7 +99,8 @@ def getMethodDistribution():
 @flask_profiler.route("/db/dumpDatabase")
 @auth.login_required
 def dumpDatabase():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     response = jsonify({"summary": config.collection.getSummary()})
     response.headers["Content-Disposition"] = "attachment; filename=dump.json"
     return response
@@ -101,7 +109,8 @@ def dumpDatabase():
 @flask_profiler.route("/db/deleteDatabase")
 @auth.login_required
 def deleteDatabase():
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     response = jsonify({"status": config.collection.truncate()})
     return response
 
@@ -154,7 +163,8 @@ class Measurement:
 
 
 def is_ignored(name: str) -> bool:
-    config = Configuration(current_app)
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     for pattern in config.ignore_patterns:
         if re.search(pattern, name):
             return True
@@ -162,8 +172,9 @@ def is_ignored(name: str) -> bool:
 
 
 def measure(f, name: str, method, context=None):
+    injector = DependencyInjector()
+    config = injector.get_configuration()
     logger.debug("{0} is being processed.")
-    config = Configuration(current_app)
     if is_ignored(name):
         logger.debug("{0} is ignored.")
         return f
@@ -240,7 +251,8 @@ def init_app(app: Flask) -> None:
     are registered with your app.
 
     """
-    config = Configuration(app)
+    injector = DependencyInjector(app=app)
+    config = injector.get_configuration()
 
     if not config.enabled:
         return
@@ -259,33 +271,20 @@ def sanatize_kwargs(kwargs):
     return kwargs
 
 
-def parse_filter(arguments=None) -> FilterQuery:
-    if arguments is None:
-        arguments = dict()
-    limit = int(arguments.get("limit", 100))
-    skip = int(arguments.get("skip", 0))
-    sort = tuple(str(arguments.get("sort", "endedAt,desc")).split(","))
-    sort = (
-        sort[0],
-        sort[1],
-    )
-    startedAt = datetime.fromtimestamp(
-        float(arguments.get("startedAt", time.time() - 3600 * 24 * 7))
-    )
-    endedAt = datetime.fromtimestamp(float(arguments.get("endedAt", time.time())))
-    name = arguments.get("name", None)
-    method = arguments.get("method", None)
-    args = arguments.get("args", None)
-    kwargs = arguments.get("kwargs", None)
-    query = FilterQuery(
-        limit=limit,
-        skip=skip,
-        sort=sort,
-        startedAt=startedAt,
-        endedAt=endedAt,
-        name=name,
-        method=method,
-        args=args,
-        kwargs=kwargs,
-    )
-    return query
+class SystemClock:
+    def get_epoch(self) -> float:
+        return time.time()
+
+
+class DependencyInjector:
+    def __init__(self, *, app: Optional[Flask] = None) -> None:
+        self.app = app or current_app
+
+    def get_clock(self) -> SystemClock:
+        return SystemClock()
+
+    def get_filter_controller(self) -> FilterController:
+        return FilterController(clock=self.get_clock())
+
+    def get_configuration(self) -> Configuration:
+        return Configuration(self.app)
