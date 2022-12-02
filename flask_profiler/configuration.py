@@ -1,8 +1,9 @@
 from typing import List, Optional
 
-from flask import Flask, g, has_app_context
+from flask import Flask, g
 
 from .storage.base import BaseStorage
+from .storage.sqlite import Sqlite
 
 
 class Configuration:
@@ -51,9 +52,7 @@ class Configuration:
         return self.read_config()["basicAuth"]["passwordb"]
 
     @property
-    def collection(self) -> Optional[BaseStorage]:
-        if not has_app_context():
-            return None
+    def collection(self) -> BaseStorage:
         collection = g.get("flask_profiler_collection")
         if collection is None:
             collection = self._create_storage()
@@ -62,34 +61,10 @@ class Configuration:
 
     def _create_storage(self) -> BaseStorage:
         conf = self.read_config().get("storage", {})
-        engine = conf.get("engine", "")
-        if engine.lower() == "mongodb":
-            from .storage.mongo import Mongo
-
-            return Mongo(
-                mongo_url=conf.get("MONGO_URL", "mongodb://localhost"),
-                database_name=conf.get("DATABASE", "flask_profiler"),
-                collection_name=conf.get("COLLECTION", "measurements"),
-            )
-        elif engine.lower() == "sqlite":
-            from .storage.sqlite import Sqlite
-
-            return Sqlite(
-                sqlite_file=conf.get("FILE", "flask_profiler.sql"),
-                table_name=conf.get("TABLE", "measurements"),
-            )
-        elif engine.lower() == "sqlalchemy":
-            from .storage.sql_alchemy import Sqlalchemy
-
-            db_url = conf.get("db_url", "sqlite:///flask_profiler.sql")
-            return Sqlalchemy(db_url=db_url)
-        else:
-            raise ValueError(
-                (
-                    "flask-profiler requires a valid storage engine but it is"
-                    " missing or wrong. provided engine: {}".format(engine)
-                )
-            )
+        return Sqlite(
+            sqlite_file=conf.get("FILE", "flask_profiler.sql"),
+            table_name=conf.get("TABLE", "measurements"),
+        )
 
     def read_config(self):
         return (

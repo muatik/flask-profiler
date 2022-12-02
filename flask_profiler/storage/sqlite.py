@@ -2,8 +2,9 @@ import json
 import sqlite3
 import threading
 from datetime import datetime
+from typing import Dict, List, Tuple
 
-from .base import FilterQuery
+from .base import FilterQuery, Measurement, Record, RequestMetadata, Summary
 
 
 def formatDate(timestamp, dateFormat):
@@ -11,7 +12,7 @@ def formatDate(timestamp, dateFormat):
 
 
 class Sqlite:
-    def __init__(self, sqlite_file: str, table_name: str):
+    def __init__(self, sqlite_file: str, table_name: str) -> None:
         self.sqlite_file = sqlite_file
         self.table_name = table_name
         self.startedAt_head = "startedAt"  # name of the column
@@ -33,7 +34,7 @@ class Sqlite:
             if "already exists" not in str(e):
                 raise e
 
-    def create_database(self):
+    def create_database(self) -> None:
         with self.lock:
             sql = """CREATE TABLE {table_name}
                 (
@@ -75,15 +76,15 @@ class Sqlite:
 
             self.connection.commit()
 
-    def insert(self, kwds):
-        endedAt = float(kwds.get("endedAt", None))
-        startedAt = float(kwds.get("startedAt", None))
-        elapsed = kwds.get("elapsed", None)
-        args = json.dumps(list(kwds.get("args", ())))  # tuple -> list -> json
-        kwargs = json.dumps(kwds.get("kwargs", ()))
-        context = json.dumps(kwds.get("context", {}))
-        method = kwds.get("method", None)
-        name = kwds.get("name", None)
+    def insert(self, measurement: Measurement) -> None:
+        endedAt = measurement.endedAt
+        startedAt = measurement.startedAt
+        elapsed = measurement.elapsed
+        args = json.dumps(list(measurement.args))
+        kwargs = json.dumps(measurement.kwargs)
+        context = json.dumps(measurement.context.serialize_to_json())
+        method = measurement.method
+        name = measurement.name
 
         sql = """INSERT INTO {0} VALUES (
             null, ?, ?, ?, ?,?, ?, ?, ?)""".format(
@@ -97,112 +98,107 @@ class Sqlite:
 
             self.connection.commit()
 
-    def getTimeseries(self, kwds={}):
-        filters = Sqlite._get_filters(kwds)
-
-        if kwds.get("interval", None) == "daily":
-            interval = 3600 * 24  # daily
+    def getTimeseries(
+        self, startedAt: float, endedAt: float, interval: str
+    ) -> Dict[Tuple[datetime, str], int]:
+        if interval == "daily":
+            interval_seconds = 3600 * 24  # daily
             dateFormat = "%Y-%m-%d"
         else:
-            interval = 3600  # hourly
+            interval_seconds = 3600  # hourly
             dateFormat = "%Y-%m-%d %H"
-
-        endedAt, startedAt = filters["endedAt"], filters["startedAt"]
-
-        conditions = "where endedAt<={0} AND startedAt>={1} ".format(endedAt, startedAt)
         with self.lock:
-            sql = """SELECT
-                    startedAt, count(id) as count
-                FROM "{table_name}" {conditions}
-                group by strftime("{dateFormat}", datetime(startedAt, 'unixepoch'))
+            sql = """SELECT startedAt, count(id) as count
+                FROM "{table_name}"
+                WHERE endedAt<=:endedAt AND startedAt>=:startedAt
+                group by strftime(:dateFormat, datetime(startedAt, 'unixepoch'))
                 order by startedAt asc
                 """.format(
-                table_name=self.table_name, dateFormat=dateFormat, conditions=conditions
+                table_name=self.table_name
             )
-
-            self.cursor.execute(sql)
+            self.cursor.execute(
+                sql, dict(endedAt=endedAt, startedAt=startedAt, dateFormat=dateFormat)
+            )
             rows = self.cursor.fetchall()
-
         series = {}
-        for i in range(int(startedAt), int(endedAt) + 1, interval):
+        for i in range(int(startedAt), int(endedAt) + 1, interval_seconds):
             series[formatDate(i, dateFormat)] = 0
-
         for row in rows:
             series[formatDate(row[0], dateFormat)] = row[1]
         return series
 
-    def getMethodDistribution(self, kwds=None):
-        if not kwds:
-            kwds = {}
-        f = Sqlite._get_filters(kwds)
-        endedAt, startedAt = f["endedAt"], f["startedAt"]
-        conditions = "where endedAt<={0} AND startedAt>={1} ".format(endedAt, startedAt)
-
+    def getMethodDistribution(self, startedAt: float, endedAt: float) -> Dict[str, int]:
         with self.lock:
             sql = """SELECT
                     method, count(id) as count
-                FROM "{table_name}" {conditions}
+                FROM "{table_name}"
+                where endedAt<=:endedAt AND startedAt>=:startedAt
                 group by method
                 """.format(
-                table_name=self.table_name, conditions=conditions
+                table_name=self.table_name
             )
 
-            self.cursor.execute(sql)
+            self.cursor.execute(sql, dict(endedAt=endedAt, startedAt=startedAt))
             rows = self.cursor.fetchall()
-
         results = {}
         for row in rows:
             results[row[0]] = row[1]
         return results
 
-    def filter(self, criteria: FilterQuery):
-        conditions = "WHERE 1=1 AND "
+    def filter(self, criteria: FilterQuery) -> List[Record]:
+        conditions = "WHERE 1=1"
 
         if criteria.endedAt:
-            conditions = conditions + "endedAt<={0} AND ".format(
-                criteria.endedAt.timestamp()
-            )
+            conditions = conditions + " AND endedAt <= :endedAt"
         if criteria.startedAt:
-            conditions = conditions + "startedAt>={0} AND ".format(
-                criteria.startedAt.timestamp()
-            )
+            conditions = conditions + " AND startedAt >= :startedAt"
         if criteria.elapsed:
-            conditions = conditions + "elapsed>={0} AND ".format(criteria.elapsed)
+            conditions = conditions + " AND elapsed >= :elapsed"
         if criteria.method:
-            conditions = conditions + 'method="{0}" AND '.format(criteria.method)
-        if criteria:
-            conditions = conditions + 'name="{0}" AND '.format(criteria.name)
-
-        conditions = conditions.rstrip(" AND")
+            conditions = conditions + " AND method = :method"
+        if criteria.name:
+            conditions = conditions + " AND name = :name"
 
         with self.lock:
             sql = """SELECT * FROM "{table_name}" {conditions}
             order by {sort_field} {sort_direction}
-            limit {limit} OFFSET {skip} """.format(
+            limit :limit OFFSET :offset """.format(
                 table_name=self.table_name,
                 conditions=conditions,
                 sort_field=criteria.sort[0],
                 sort_direction=criteria.sort[1],
-                limit=criteria.limit,
-                skip=criteria.skip,
             )
 
-            self.cursor.execute(sql)
+            self.cursor.execute(
+                sql,
+                dict(
+                    endedAt=criteria.endedAt.timestamp() if criteria.endedAt else None,
+                    startedAt=criteria.startedAt.timestamp()
+                    if criteria.startedAt
+                    else None,
+                    elapsed=criteria.elapsed,
+                    method=criteria.method,
+                    name=criteria.name,
+                    offset=criteria.skip,
+                    limit=criteria.limit,
+                ),
+            )
             rows = self.cursor.fetchall()
-        return (self.jsonify_row(row) for row in rows)
+        return [self._row_to_record(row) for row in rows]
 
-    def get(self, measurementId):
+    def get(self, measurement_id: int) -> Record:
         with self.lock:
             self.cursor.execute(
-                'SELECT * FROM "{table_name}" WHERE ID={measurementId}'.format(
-                    table_name=self.table_name, measurementId=measurementId
-                )
+                'SELECT * FROM "{table_name}" WHERE ID = :id'.format(
+                    table_name=self.table_name,
+                ),
+                dict(id=measurement_id),
             )
             rows = self.cursor.fetchall()
         record = rows[0]
-        return self.jsonify_row(record)
+        return self._row_to_record(record)
 
-    def truncate(self):
+    def truncate(self) -> bool:
         with self.lock:
             self.cursor.execute("DELETE FROM {0}".format(self.table_name))
             self.connection.commit()
@@ -210,31 +206,32 @@ class Sqlite:
         # True or False based on success of this delete operation
         return True if self.cursor.rowcount else False
 
-    def delete(self, measurementId):
+    def delete(self, measuremt_id: int) -> None:
         with self.lock:
             self.cursor.execute(
-                'DELETE FROM "{table_name}" WHERE ID={measurementId}'.format(
-                    table_name=self.table_name, measurementId=measurementId
-                )
+                'DELETE FROM "{table_name}" WHERE ID = :id'.format(
+                    table_name=self.table_name,
+                ),
+                dict(id=measuremt_id),
             )
             return self.connection.commit()
 
-    def jsonify_row(self, row):
-        data = {
-            "id": row[0],
-            "startedAt": row[1],
-            "endedAt": row[2],
-            "elapsed": row[3],
-            "args": tuple(json.loads(row[4])),  # json -> list -> tuple
-            "kwargs": json.loads(row[5]),
-            "method": row[6],
-            "context": json.loads(row[7]),
-            "name": row[8],
-        }
+    def _row_to_record(self, row) -> Record:
+        raw_context = json.loads(row[7])
+        context = RequestMetadata(**raw_context)
+        return Record(
+            id=row[0],
+            startedAt=row[1],
+            endedAt=row[2],
+            elapsed=row[3],
+            args=json.loads(row[4]),
+            kwargs=json.loads(row[5]),
+            method=row[6],
+            context=context,
+            name=row[8],
+        )
 
-        return data
-
-    def getSummary(self, criteria: FilterQuery):
+    def getSummary(self, criteria: FilterQuery) -> List[Summary]:
         conditions = "WHERE 1=1 and "
         if criteria.startedAt:
             conditions = conditions + "startedAt>={0} AND ".format(
@@ -264,20 +261,17 @@ class Sqlite:
                 sort_direction=criteria.sort[1],
             )
             self.cursor.execute(sql)
-            rows = self.cursor.fetchall()
-        result = []
-        for r in rows:
-            result.append(
-                {
-                    "method": r[0],
-                    "name": r[1],
-                    "count": r[2],
-                    "minElapsed": r[3],
-                    "maxElapsed": r[4],
-                    "avgElapsed": r[5],
-                }
-            )
-        return result
+            return [
+                Summary(
+                    method=row[0],
+                    name=row[1],
+                    count=row[2],
+                    min_elapsed=row[3],
+                    max_elapsed=row[4],
+                    avg_elapsed=row[5],
+                )
+                for row in self.cursor.fetchall()
+            ]
 
     def __enter__(self):
         return self

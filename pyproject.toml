@@ -8,7 +8,6 @@ version = "1.8"
 dependencies = [
     "Flask",
     "Flask-HTTPAuth",
-    "simplejson"
 ]
 description = "API endpoint profiler for Flask framework"
 readme = "README.md"
@@ -28,10 +27,6 @@ authors = [
 keywords = [
     "profiler", "flask", "performance", "optimization"
 ]
-
-[project.optional-dependencies]
-mongodb = ["pymongo"]
-sqlalchemy = ["sqlalchemy"]
 
 [project.license]
 file = "LICENSE"
@@ -61,6 +56,9 @@ profile = "black"
 filterwarnings = [
     'ignore:Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively, and SQLAlchemy must convert from floating point - rounding errors and other issues may occur.',
 ]
+
+[tool.mypy]
+files = ["flask_profiler", "tests"]
 
 [[tool.mypy.overrides]]
 module = ["pymongo", "bson.*", "sqlalchemy.*", "flask_httpauth", "flask_testing"]

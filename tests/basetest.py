@@ -1,39 +1,22 @@
 # -*- coding: utf-8 -*-
 import unittest
 from copy import copy
-from os import environ
 
 from flask import Flask
 
 from flask_profiler import flask_profiler
 from flask_profiler.flask_profiler import Configuration
 
-_CONFS = {
-    "mongodb": {
-        "enabled": True,
-        "storage": {
-            "engine": "mongodb",
-            "DATABASE": "flask_profiler_test",
-            "COLLECTION": "profiler",
-            "MONGO_URL": "mongodb://localhost",
-        },
-        "ignore": ["^/static/.*"],
-    },
-    "sqlite": {
-        "enabled": True,
-        "storage": {"engine": "sqlite"},
-        "ignore": ["^/static/.*"],
-    },
-    "sqlalchemy": {
-        "enabled": True,
-        "storage": {"engine": "sqlalchemy", "db_url": "sqlite:///flask_profiler.sql"},
-        "ignore": ["^/static/.*"],
-    },
+CONF = {
+    "enabled": True,
+    "storage": {"engine": "sqlite", "file": ":memory:"},
+    "ignore": ["^/static/.*"],
 }
-CONF = _CONFS[environ.get("FLASK_PROFILER_TEST_CONF", "sqlalchemy")]
 
 
 class BasetTest(unittest.TestCase):
+    app: Flask
+
     def tearDown(self) -> None:
         config = Configuration(self.app)
         config.collection.truncate()
@@ -90,6 +73,8 @@ class BasetTest(unittest.TestCase):
 
 
 class BaseTest2(unittest.TestCase):
+    app: Flask
+
     def tearDown(self) -> None:
         config = Configuration(self.app)
         config.collection.truncate()
@@ -106,7 +91,7 @@ class BaseTest2(unittest.TestCase):
 
         @app.route("/api/people/by-id/<uuid:id>")
         def helloUuidRoute(id):
-            return id
+            return str(id)
 
         @app.route("/api/with/profiler/<message>")
         def customProfilerEP(message):

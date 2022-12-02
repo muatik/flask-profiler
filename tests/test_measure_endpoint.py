@@ -30,7 +30,7 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
         measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 0)
 
-    def test_02_with_profiler(self):
+    def test_02_with_profiler(self) -> None:
         config = Configuration(self.app)
         response = self.client.get("/api/with/profiler/hello?q=1")
         r = response.data.decode("utf-8", "strict")
@@ -39,10 +39,10 @@ class EndpointMeasurementTest(BasetTest, FlaskTestCase):
         measurements = list(config.collection.filter(self.controller.parse_filter()))
         self.assertEqual(len(measurements), 1)
         m = measurements[0]
-        self.assertEqual(m["name"], "/api/with/profiler/<message>")
-        self.assertEqual(m["method"], "GET")
-        self.assertEqual(m["kwargs"], {"message": "hello"})
-        self.assertEqual(m["context"]["args"], {"q": "1"})
+        self.assertEqual(m.name, "/api/with/profiler/<message>")
+        self.assertEqual(m.method, "GET")
+        self.assertEqual(m.kwargs, {"message": "hello"})
+        self.assertEqual(m.context.args, {"q": "1"})
 
 
 class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
@@ -60,7 +60,7 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         r = response.data.decode("utf-8", "strict")
         self.assertEqual(r, name)
 
-    def test_02_profiler(self):
+    def test_02_profiler(self) -> None:
         config = Configuration(self.app)
         self.client.get("/api/people/foo")
         self.client.get("/api/people/foo")
@@ -69,20 +69,20 @@ class EndpointMeasurementTest2(BaseTest2, FlaskTestCase):
         self.assertEqual(len(measurements), 3)
         test_flag = False
         for list_element in measurements:
-            if list_element["name"] == "/api/with/profiler/<message>":
+            if list_element.name == "/api/with/profiler/<message>":
                 test_flag = True
-                self.assertEqual(list_element["name"], "/api/with/profiler/<message>")
-                self.assertEqual(list_element["method"], "GET")
-                self.assertEqual(list_element["kwargs"], {"message": "hello"})
-                self.assertEqual(list_element["context"]["args"], {"q": "2"})
+                self.assertEqual(list_element.name, "/api/with/profiler/<message>")
+                self.assertEqual(list_element.method, "GET")
+                self.assertEqual(list_element.kwargs, {"message": "hello"})
+                self.assertEqual(list_element.context.args, {"q": "2"})
         self.assertEqual(True, test_flag)
 
-    def test_that_routes_with_uuids_get_profiled_correctly(self):
+    def test_that_routes_with_uuids_get_profiled_correctly(self) -> None:
         config = Configuration(self.app)
         expected_uuid = uuid4()
         self.client.get(f"/api/people/by-id/{expected_uuid}")
         measurement = list(config.collection.filter(self.controller.parse_filter()))[0]
-        self.assertEqual(measurement["kwargs"]["id"], str(expected_uuid))
+        self.assertEqual(measurement.kwargs["id"], str(expected_uuid))
 
 
 if __name__ == "__main__":

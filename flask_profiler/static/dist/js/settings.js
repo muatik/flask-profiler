@@ -1,10 +1,6 @@
 $(document).on('ready', function () {
     $('#clear-settings-info').hide();
 
-    $('.dump-database').click(function (e) {
-        window.location = 'db/dumpDatabase';
-    });
-
     $('.delete-database').click(function (e) {
         $.get("db/deleteDatabase", function (data) {
                 if (data.status === true) {

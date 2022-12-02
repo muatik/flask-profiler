@@ -5,11 +5,7 @@ buildPythonPackage rec {
   version = "master";
   src = ../.;
   buildInputs = [ setuptools ];
-  propagatedBuildInputs = [ simplejson flask-httpauth flask ];
-  checkInputs = [ sqlalchemy flask-testing pytestCheckHook ];
+  propagatedBuildInputs = [ flask-httpauth flask ];
+  checkInputs = [ flask-testing pytestCheckHook ];
   format = "pyproject";
-  passthru.optional-dependencies = {
-    mongodb = [ pymongo ];
-    sqlalchemy = [ sqlalchemy ];
-  };
 }

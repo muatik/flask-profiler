@@ -4,18 +4,24 @@ import functools
 import logging
 import re
 import time
-from pprint import pprint as pp
-from typing import Optional
+from typing import Callable, Optional, TypeVar, Union, cast
 from uuid import UUID
 
-from flask import Blueprint, Flask, current_app, jsonify, request
+from flask import Blueprint, Flask
+from flask import Response as FlaskResponse
+from flask import current_app, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 
 from .configuration import Configuration
 from .controllers.filter_controller import FilterController
+from .presenters.filtered_presenter import FilteredPresenter
+from .presenters.summary_presenter import SummaryPresenter
+from .storage.base import Measurement, RequestMetadata
 
+ResponseT = Union[str, FlaskResponse]
 logger = logging.getLogger("flask-profiler")
 auth = HTTPBasicAuth()
+Route = TypeVar("Route", bound=Callable[..., ResponseT])
 
 
 flask_profiler = Blueprint(
@@ -44,37 +50,41 @@ def verify_password(username, password):
 
 @flask_profiler.route("/")
 @auth.login_required
-def index():
+def index() -> ResponseT:
     return flask_profiler.send_static_file("index.html")
 
 
 @flask_profiler.route("/api/measurements/")
 @auth.login_required
-def filterMeasurements():
+def filterMeasurements() -> ResponseT:
     injector = DependencyInjector()
     controller = injector.get_filter_controller()
+    presenter = injector.get_filtered_presenter()
     config = injector.get_configuration()
     args = dict(request.args.items())
     query = controller.parse_filter(args)
     measurements = config.collection.filter(query)
-    return jsonify({"measurements": list(measurements)})
+    view_model = presenter.present_filtered_measurements(measurements)
+    return jsonify(view_model)
 
 
 @flask_profiler.route("/api/measurements/grouped")
 @auth.login_required
-def getMeasurementsSummary():
+def getMeasurementsSummary() -> ResponseT:
     injector = DependencyInjector()
     controller = injector.get_filter_controller()
+    presenter = injector.get_summary_presenter()
     config = injector.get_configuration()
     args = dict(request.args.items())
     query = controller.parse_filter(args)
     measurements = config.collection.getSummary(query)
-    return jsonify({"measurements": list(measurements)})
+    view_model = presenter.present_summaries(measurements)
+    return jsonify(view_model)
 
 
 @flask_profiler.route("/api/measurements/<measurementId>")
 @auth.login_required
-def getContext(measurementId):
+def getContext(measurementId) -> ResponseT:
     injector = DependencyInjector()
     config = injector.get_configuration()
     return jsonify(config.collection.get(measurementId))
@@ -82,35 +92,40 @@ def getContext(measurementId):
 
 @flask_profiler.route("/api/measurements/timeseries/")
 @auth.login_required
-def getRequestsTimeseries():
+def getRequestsTimeseries() -> ResponseT:
     injector = DependencyInjector()
     config = injector.get_configuration()
     args = dict(request.args.items())
-    return jsonify({"series": config.collection.getTimeseries(args)})
+    return jsonify(
+        {
+            "series": config.collection.getTimeseries(
+                startedAt=float(args.get("startedAt", time.time() - 3600 * 24 * 7)),
+                endedAt=float(args.get("endedAt", time.time())),
+                interval=args.get("interval", "hourly"),
+            )
+        }
+    )
 
 
 @flask_profiler.route("/api/measurements/methodDistribution/")
 @auth.login_required
-def getMethodDistribution():
+def getMethodDistribution() -> ResponseT:
     injector = DependencyInjector()
     config = injector.get_configuration()
     args = dict(request.args.items())
-    return jsonify({"distribution": config.collection.getMethodDistribution(args)})
-
-
-@flask_profiler.route("/db/dumpDatabase")
-@auth.login_required
-def dumpDatabase():
-    injector = DependencyInjector()
-    config = injector.get_configuration()
-    response = jsonify({"summary": config.collection.getSummary()})
-    response.headers["Content-Disposition"] = "attachment; filename=dump.json"
-    return response
+    return jsonify(
+        {
+            "distribution": config.collection.getMethodDistribution(
+                startedAt=float(args.get("startedAt", time.time() - 3600 * 24 * 7)),
+                endedAt=float(args.get("endedAt", time.time())),
+            )
+        }
+    )
 
 
 @flask_profiler.route("/db/deleteDatabase")
 @auth.login_required
-def deleteDatabase():
+def deleteDatabase() -> ResponseT:
     injector = DependencyInjector()
     config = injector.get_configuration()
     response = jsonify({"status": config.collection.truncate()})
@@ -118,50 +133,9 @@ def deleteDatabase():
 
 
 @flask_profiler.after_request
-def x_robots_tag_header(response):
+def x_robots_tag_header(response) -> FlaskResponse:
     response.headers["X-Robots-Tag"] = "noindex, nofollow"
     return response
-
-
-class Measurement:
-    """represents an endpoint measurement"""
-
-    DECIMAL_PLACES = 6
-
-    def __init__(self, name, args, kwargs, method, context=None):
-        super(Measurement, self).__init__()
-        self.context = context
-        self.name = name
-        self.method = method
-        self.args = args
-        self.kwargs = kwargs
-        self.startedAt = 0
-        self.endedAt = 0
-        self.elapsed = 0
-
-    def __json__(self):
-        return {
-            "name": self.name,
-            "args": self.args,
-            "kwargs": self.kwargs,
-            "method": self.method,
-            "startedAt": self.startedAt,
-            "endedAt": self.endedAt,
-            "elapsed": self.elapsed,
-            "context": self.context,
-        }
-
-    def __str__(self):
-        return str(self.__json__())
-
-    def start(self):
-        # we use default_timer to get the best clock available.
-        # see: http://stackoverflow.com/a/25823885/672798
-        self.startedAt = time.time()
-
-    def stop(self):
-        self.endedAt = time.time()
-        self.elapsed = round(self.endedAt - self.startedAt, self.DECIMAL_PLACES)
 
 
 def is_ignored(name: str) -> bool:
@@ -173,7 +147,7 @@ def is_ignored(name: str) -> bool:
     return False
 
 
-def measure(f, name: str, method, context=None):
+def measure(f: Route, name: str, method: str, context: RequestMetadata) -> Route:
     injector = DependencyInjector()
     config = injector.get_configuration()
     logger.debug("{0} is being processed.")
@@ -182,38 +156,41 @@ def measure(f, name: str, method, context=None):
         return f
 
     @functools.wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> ResponseT:
         if not config.sampling_function():
             return f(*args, **kwargs)
-
-        measurement = Measurement(name, args, sanatize_kwargs(kwargs), method, context)
-        measurement.start()
-
+        started_at = time.time()
         try:
             returnVal = f(*args, **kwargs)
         finally:
-            measurement.stop()
-            if config.verbose:
-                pp(measurement.__json__())
-            config.collection.insert(measurement.__json__())
-
+            stopped_at = time.time()
+            measurement = Measurement(
+                method=method,
+                context=context,
+                name=name,
+                args=list(map(str, args)),
+                kwargs=sanatize_kwargs(kwargs),
+                startedAt=started_at,
+                endedAt=stopped_at,
+            )
+            logger.debug(str(measurement.serialize_to_json()))
+            config.collection.insert(measurement)
         return returnVal
 
-    return wrapper
+    return cast(Route, wrapper)
 
 
 def wrapHttpEndpoint(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        context = {
-            "url": request.base_url,
-            "args": dict(request.args.items()),
-            "form": dict(request.form.items()),
-            "body": request.data.decode("utf-8", "strict"),
-            "headers": dict(request.headers.items()),
-            "func": request.endpoint,
-            "ip": request.remote_addr,
-        }
+        context = RequestMetadata(
+            url=request.base_url,
+            args=dict(request.args.items()),
+            form=dict(request.form.items()),
+            headers=dict(request.headers.items()),
+            endpoint_name=request.endpoint,
+            client_address=request.remote_addr,
+        )
         endpoint_name = str(request.url_rule)
         wrapped = measure(f, endpoint_name, request.method, context)
         return wrapped(*args, **kwargs)
@@ -290,3 +267,9 @@ class DependencyInjector:
 
     def get_configuration(self) -> Configuration:
         return Configuration(self.app)
+
+    def get_summary_presenter(self) -> SummaryPresenter:
+        return SummaryPresenter()
+
+    def get_filtered_presenter(self) -> FilteredPresenter:
+        return FilteredPresenter()
